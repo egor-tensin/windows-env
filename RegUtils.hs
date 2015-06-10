@@ -62,6 +62,21 @@ setString key subKeyPath valueName valueValue =
   withTStringLen valueValue $ \(ptr, len) -> do
     type' <- getType key subKeyPath valueName
     regSetValueEx subKey valueName (fromMaybe rEG_SZ type') ptr $ len * sizeOf (undefined :: TCHAR)
+    notifyEnvironmentUpdate
+
+foreign import ccall "BroadcastSystemMessageW"
+  c_BroadcastSystemMessage :: DWORD -> LPDWORD -> UINT -> WPARAM -> LPARAM -> IO LONG
+
+notifyEnvironmentUpdate :: IO ()
+notifyEnvironmentUpdate =
+  withCWString "Environment" $ \lparamPtr -> do
+    let wparam = fromIntegral $ castPtrToUINTPtr nullPtr
+    let lparam = fromIntegral $ castPtrToUINTPtr lparamPtr
+    c_BroadcastSystemMessage bSF_POSTMESSAGE nullPtr wM_SETTINGCHANGE wparam lparam
+    return ()
+      where
+        bSF_POSTMESSAGE = 0x10
+        wM_SETTINGCHANGE = 0x1A
 
 delValue :: HKEY -> String -> String -> IO ()
 delValue key subKeyPath valueName =
@@ -69,6 +84,7 @@ delValue key subKeyPath valueName =
   withForeignPtr subKey $ \subKeyPtr ->
   withCWString valueName $ \valueNamePtr -> do
     ret <- c_RegDeleteValue subKeyPtr valueNamePtr
+    notifyEnvironmentUpdate
     case ret of
       0x0 -> return ()
       0x2 -> ioError $ mkIOError doesNotExistErrorType "RegQueryValueEx" Nothing $ Just (subKeyPath ++ "\\" ++ valueName)
