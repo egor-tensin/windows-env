@@ -12,7 +12,6 @@ module RegUtils ( delValue
 
 import Control.Exception ( bracket )
 import Data.Maybe ( fromMaybe )
-import Foreign.C.String ( peekCWString, withCWString )
 import Foreign.ForeignPtr ( withForeignPtr )
 import Foreign.Marshal.Alloc ( alloca, allocaBytes )
 import Foreign.Ptr ( castPtr, plusPtr )
@@ -25,7 +24,7 @@ getType :: HKEY -> String -> String -> IO (Maybe RegValueType)
 getType key subKeyPath valueName =
   bracket (regOpenKey key subKeyPath) regCloseKey $ \key ->
   withForeignPtr key $ \keyPtr ->
-  withCWString valueName $ \valueNamePtr ->
+  withTString valueName $ \valueNamePtr ->
   alloca $ \typePtr -> do
     ret <- c_RegQueryValueEx keyPtr valueNamePtr nullPtr typePtr nullPtr nullPtr
     case ret of
@@ -39,7 +38,7 @@ getString :: HKEY -> String -> String -> IO String
 getString key subKeyPath valueName =
   bracket (regOpenKey key subKeyPath) regCloseKey $ \key ->
   withForeignPtr key $ \keyPtr ->
-  withCWString valueName $ \valueNamePtr ->
+  withTString valueName $ \valueNamePtr ->
   alloca $ \dataSizePtr -> do
     poke dataSizePtr 0
     ret <- c_RegQueryValueEx keyPtr valueNamePtr nullPtr nullPtr nullPtr dataSizePtr
@@ -52,16 +51,16 @@ getString key subKeyPath valueName =
           poke (castPtr $ plusPtr dataPtr $ fromIntegral dataSize) '\0'
           failUnlessSuccess "RegQueryValueEx" $
             c_RegQueryValueEx keyPtr valueNamePtr nullPtr nullPtr dataPtr dataSizePtr
-          peekCWString $ castPtr dataPtr
+          peekTString $ castPtr dataPtr
       0x2 -> ioError $ mkIOError doesNotExistErrorType "RegQueryValueEx" Nothing $ Just (subKeyPath ++ "\\" ++ valueName)
       _   -> failWith "RegQueryValueEx" ret
 
 setString :: HKEY -> String -> String -> String -> IO ()
 setString key subKeyPath valueName valueValue =
   bracket (regOpenKey key subKeyPath) regCloseKey $ \subKey ->
-  withTStringLen valueValue $ \(ptr, len) -> do
+  withTString valueValue $ \ptr -> do
     type' <- getType key subKeyPath valueName
-    regSetValueEx subKey valueName (fromMaybe rEG_SZ type') ptr $ len * sizeOf (undefined :: TCHAR)
+    regSetValueEx subKey valueName (fromMaybe rEG_SZ type') ptr $ (length valueValue + 1) * sizeOf (undefined :: TCHAR)
     notifyEnvironmentUpdate
 
 foreign import ccall "BroadcastSystemMessageW"
@@ -69,7 +68,7 @@ foreign import ccall "BroadcastSystemMessageW"
 
 notifyEnvironmentUpdate :: IO ()
 notifyEnvironmentUpdate =
-  withCWString "Environment" $ \lparamPtr -> do
+  withTString "Environment" $ \lparamPtr -> do
     let wparam = fromIntegral $ castPtrToUINTPtr nullPtr
     let lparam = fromIntegral $ castPtrToUINTPtr lparamPtr
     c_BroadcastSystemMessage bSF_POSTMESSAGE nullPtr wM_SETTINGCHANGE wparam lparam
@@ -82,7 +81,7 @@ delValue :: HKEY -> String -> String -> IO ()
 delValue key subKeyPath valueName =
   bracket (regOpenKey key subKeyPath) regCloseKey $ \subKey ->
   withForeignPtr subKey $ \subKeyPtr ->
-  withCWString valueName $ \valueNamePtr -> do
+  withTString valueName $ \valueNamePtr -> do
     ret <- c_RegDeleteValue subKeyPtr valueNamePtr
     notifyEnvironmentUpdate
     case ret of
