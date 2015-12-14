@@ -18,7 +18,7 @@ main = do
   rawArgs <- getArgs
   case getOpt Permute optionDescription rawArgs of
     (actions, args, []) -> do
-      options <- foldl (>>=) (return defaultOptions) actions      
+      options <- foldl (>>=) (return defaultOptions) actions
       case args of
         [name] -> unsetEnv name options
         _ -> invalidNumberOfArguments
