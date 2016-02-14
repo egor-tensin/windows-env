@@ -20,27 +20,23 @@ main = do
   case getOpt Permute optionDescription rawArgs of
     (actions, args, []) -> do
       options <- foldl (>>=) (return defaultOptions) actions
-      case args of
-        [path] -> removePath path options
-        _ -> invalidNumberOfArguments
+      removePath args options
     (_, _, errorMessages) -> exitWithUsageErrors errorMessages
 
-removePath :: String -> Options -> IO ()
-removePath path options = do
+removePath :: [String] -> Options -> IO ()
+removePath paths options = do
   let varName = name options
   userVal <- EnvUtils.queryFromRegistry EnvUtils.CurrentUserEnvironment varName
   let userValParts = EnvUtils.splitPaths userVal
-  if path `elem` userValParts
-    then do
-      let newUserValParts = filter (/= path) userValParts
-      EnvUtils.saveToRegistryWithPrompt EnvUtils.CurrentUserEnvironment varName $ EnvUtils.joinPaths newUserValParts
-    else do
-      when (global options) $ do
-        globalVal <- EnvUtils.queryFromRegistry EnvUtils.AllUsersEnvironment varName
-        let globalValParts = EnvUtils.splitPaths globalVal
-        when (path `elem` globalValParts) $ do
-          let newGlobalValParts = filter (/= path) globalValParts
-          EnvUtils.saveToRegistryWithPrompt EnvUtils.AllUsersEnvironment varName $ EnvUtils.joinPaths newGlobalValParts
+  let newUserValParts = filter (`notElem` paths) userValParts
+  when (length userValParts /= length newUserValParts) $ do
+    EnvUtils.saveToRegistryWithPrompt EnvUtils.CurrentUserEnvironment varName $ EnvUtils.joinPaths newUserValParts
+  when (global options) $ do
+    globalVal <- EnvUtils.queryFromRegistry EnvUtils.AllUsersEnvironment varName
+    let globalValParts = EnvUtils.splitPaths globalVal
+    let newGlobalValParts = filter (`notElem` paths) globalValParts
+    when (length globalValParts /= length newGlobalValParts) $ do
+      EnvUtils.saveToRegistryWithPrompt EnvUtils.AllUsersEnvironment varName $ EnvUtils.joinPaths newGlobalValParts
 
 data Options = Options { name :: String
                        , global :: Bool }
@@ -58,7 +54,7 @@ buildHelpMessage = do
       buildHeader :: IO String
       buildHeader = do
         progName <- getProgName
-        return $ "Usage: " ++ progName ++ " [OPTIONS...] PATH\nOptions:"
+        return $ "Usage: " ++ progName ++ " [OPTIONS...] [PATH...]\nOptions:"
 
 exitWithHelpMessage :: a -> IO b
 exitWithHelpMessage _ = do

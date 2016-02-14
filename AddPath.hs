@@ -6,7 +6,7 @@
 
 module Main ( main ) where
 
-import Control.Monad ( when )
+import Control.Monad ( mapM_, when )
 import System.Console.GetOpt
 import System.Environment ( getArgs, getProgName )
 import System.Exit ( exitFailure, exitSuccess )
@@ -20,17 +20,19 @@ main = do
   case getOpt Permute optionDescription rawArgs of
     (actions, args, []) -> do
       options <- foldl (>>=) (return defaultOptions) actions
-      case args of
-        [path] -> addPath path options
-        _ -> invalidNumberOfArguments
+      addPath args options
     (_, _, errorMessages) -> exitWithUsageErrors errorMessages
 
-addPath :: String -> Options -> IO ()
-addPath path options = do
-  oldVal <- EnvUtils.getEnv $ name options
-  when (notElem path $ EnvUtils.splitPaths oldVal) $ do
-    oldValFromReg <- EnvUtils.queryFromRegistry (env options) (name options)
-    EnvUtils.saveToRegistryWithPrompt (env options) (name options) $ EnvUtils.joinPaths [path,oldValFromReg]
+addPath :: [String] -> Options -> IO ()
+addPath paths options = do
+  missingPaths <- dropIncludedPaths paths
+  when (not $ null missingPaths) $ do
+    oldPath <- EnvUtils.queryFromRegistry (env options) (name options)
+    EnvUtils.saveToRegistryWithPrompt (env options) (name options) $ EnvUtils.joinPaths $ missingPaths ++ [oldPath]
+      where
+        dropIncludedPaths paths = do
+          currentPath <- EnvUtils.getEnv $ name options
+          return $ filter (flip notElem $ EnvUtils.splitPaths currentPath) paths
 
 data Options = Options { name :: String
                        , env :: EnvUtils.RegistryBasedEnvironment }
@@ -48,7 +50,7 @@ buildHelpMessage = do
       buildHeader :: IO String
       buildHeader = do
         progName <- getProgName
-        return $ "Usage: " ++ progName ++ " [OPTIONS...] PATH\nOptions:"
+        return $ "Usage: " ++ progName ++ " [OPTIONS...] [PATH...]\nOptions:"
 
 exitWithHelpMessage :: a -> IO b
 exitWithHelpMessage _ = do
