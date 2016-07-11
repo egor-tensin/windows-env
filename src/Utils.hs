@@ -6,24 +6,24 @@
 
 module Utils where
 
-import Control.Monad ( liftM )
-import Data.Char ( toLower )
-import System.IO ( hFlush, stdout )
+import Control.Monad (liftM)
+import Data.Char (toLower)
+import System.IO (hFlush, stdout)
 
 prompt :: String -> IO String
 prompt banner = do
-  putStr banner
-  hFlush stdout
-  getLine
+    putStr banner
+    hFlush stdout
+    getLine
 
 promptYesNo :: String -> IO Bool
 promptYesNo banner = do
-  response <- liftM (map toLower) $ prompt banner
-  if response `elem` yeses
-    then return True
-    else if response `elem` noes
-      then return False
-      else promptToContinue
+    response <- liftM (map toLower) $ prompt banner
+    if response `elem` yeses
+        then return True
+        else if response `elem` noes
+            then return False
+            else promptToContinue
   where
     yeses = ["y", "yes"]
     noes = ["n", "no"]

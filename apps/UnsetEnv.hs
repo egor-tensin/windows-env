@@ -4,62 +4,65 @@
  - See LICENSE.txt for details.
 -}
 
-module Main ( main ) where
+module Main (main) where
 
 import System.Console.GetOpt
-import System.Environment ( getArgs, getProgName )
-import System.Exit ( exitFailure, exitSuccess )
-import System.IO ( hPutStr, stderr )
+import System.Environment (getArgs, getProgName)
+import System.Exit (exitFailure, exitSuccess)
+import System.IO (hPutStr, stderr)
 
 import qualified Environment
 
 main :: IO ()
 main = do
-  rawArgs <- getArgs
-  case getOpt Permute optionDescription rawArgs of
-    (actions, args, []) -> do
-      options <- foldl (>>=) (return defaultOptions) actions
-      case args of
-        [name] -> unsetEnv name options
-        _ -> invalidNumberOfArguments
-    (_, _, errorMessages) -> exitWithUsageErrors errorMessages
+    rawArgs <- getArgs
+    case getOpt Permute optionDescription rawArgs of
+        (actions, args, []) -> do
+            options <- foldl (>>=) (return defaultOptions) actions
+            case args of
+                [name] -> unsetEnv name options
+                _ -> invalidNumberOfArguments
+        (_, _, errorMessages) -> exitWithUsageErrors errorMessages
 
 unsetEnv :: String -> Options -> IO ()
 unsetEnv name options = Environment.wipeFromRegistryWithPrompt (env options) name
 
-data Options = Options { env :: Environment.RegistryBasedEnvironment } deriving (Eq, Show)
+data Options = Options
+    { env :: Environment.RegistryBasedEnvironment
+    } deriving (Eq, Show)
 
 defaultOptions :: Options
-defaultOptions = Options { env = Environment.CurrentUserEnvironment }
+defaultOptions = Options
+    { env = Environment.CurrentUserEnvironment
+    }
 
 buildHelpMessage :: IO String
 buildHelpMessage = do
-  header <- buildHeader
-  return $ usageInfo header optionDescription
-    where
-      buildHeader :: IO String
-      buildHeader = do
+    header <- buildHeader
+    return $ usageInfo header optionDescription
+  where
+    buildHeader = do
         progName <- getProgName
         return $ "Usage: " ++ progName ++ " [OPTIONS...] NAME\nOptions:"
 
 exitWithHelpMessage :: a -> IO b
 exitWithHelpMessage _ = do
-  helpMessage <- buildHelpMessage
-  putStr helpMessage
-  exitSuccess
+    helpMessage <- buildHelpMessage
+    putStr helpMessage
+    exitSuccess
 
 exitWithUsageErrors :: [String] -> IO a
 exitWithUsageErrors errorMessages = do
-  hPutStr stderr $ concatMap ("Usage error: " ++) errorMessages
-  helpMessage <- buildHelpMessage
-  hPutStr stderr helpMessage
-  exitFailure
+    hPutStr stderr $ concatMap ("Usage error: " ++) errorMessages
+    helpMessage <- buildHelpMessage
+    hPutStr stderr helpMessage
+    exitFailure
 
 invalidNumberOfArguments :: IO a
 invalidNumberOfArguments = exitWithUsageErrors ["invalid number of arguments\n"]
 
 optionDescription :: [OptDescr (Options -> IO Options)]
-optionDescription = [
-    Option "g" ["global"] (NoArg $ \opts -> return opts { env = Environment.AllUsersEnvironment }) "delete from the registry key for all users",
-    Option "h" ["help"] (NoArg exitWithHelpMessage) "show this message and exit"
-  ]
+optionDescription =
+    [ Option "g" ["global"] (NoArg $ \opts -> return opts { env = Environment.AllUsersEnvironment }) "delete from the registry key for all users"
+    , Option "h" ["help"] (NoArg exitWithHelpMessage) "show this message and exit"
+    ]

@@ -4,33 +4,33 @@
  - See LICENSE.txt for details.
 -}
 
-module Main ( main ) where
+module Main (main) where
 
 import System.Console.GetOpt
-import System.Directory ( doesDirectoryExist )
-import System.Environment ( getArgs, getProgName )
-import System.Exit ( exitFailure, exitSuccess )
-import System.IO ( hPutStr, stderr )
+import System.Directory (doesDirectoryExist)
+import System.Environment (getArgs, getProgName)
+import System.Exit (exitFailure, exitSuccess)
+import System.IO (hPutStr, stderr)
 
 import qualified Environment
 
 main :: IO ()
 main = do
-  rawArgs <- getArgs
-  case getOpt Permute optionDescription rawArgs of
-    (actions, args, []) -> do
-      options <- foldl (>>=) (return defaultOptions) actions
-      case args of
-        [] -> listPath options
-        _ -> invalidNumberOfArguments
-    (_, _, errorMessages) -> exitWithUsageErrors errorMessages
+    rawArgs <- getArgs
+    case getOpt Permute optionDescription rawArgs of
+        (actions, args, []) -> do
+            options <- foldl (>>=) (return defaultOptions) actions
+            case args of
+                [] -> listPath options
+                _ -> invalidNumberOfArguments
+        (_, _, errorMessages) -> exitWithUsageErrors errorMessages
 
 listPath :: Options -> IO ()
 listPath options = do
-  val <- Environment.getEnv $ name options
-  mapM_ printPath $ Environment.splitPaths val
-    where
-      printPath p = do
+    val <- Environment.getEnv $ name options
+    mapM_ printPath $ Environment.splitPaths val
+  where
+    printPath p = do
         exists <- doesDirectoryExist p
         putStrLn $ (if exists then "+" else "-") ++ " " ++ p
 
@@ -41,32 +41,32 @@ defaultOptions = Options { name = "PATH" }
 
 buildHelpMessage :: IO String
 buildHelpMessage = do
-  header <- buildHeader
-  return $ usageInfo header optionDescription
-    where
-      buildHeader :: IO String
-      buildHeader = do
+    header <- buildHeader
+    return $ usageInfo header optionDescription
+  where
+    buildHeader :: IO String
+    buildHeader = do
         progName <- getProgName
         return $ "Usage: " ++ progName ++ " [OPTIONS...]\nOptions:"
 
 exitWithHelpMessage :: a -> IO b
 exitWithHelpMessage _ = do
-  helpMessage <- buildHelpMessage
-  putStr helpMessage
-  exitSuccess
+    helpMessage <- buildHelpMessage
+    putStr helpMessage
+    exitSuccess
 
 exitWithUsageErrors :: [String] -> IO a
 exitWithUsageErrors errorMessages = do
-  hPutStr stderr $ concatMap ("Usage error: " ++) errorMessages
-  helpMessage <- buildHelpMessage
-  hPutStr stderr helpMessage
-  exitFailure
+    hPutStr stderr $ concatMap ("Usage error: " ++) errorMessages
+    helpMessage <- buildHelpMessage
+    hPutStr stderr helpMessage
+    exitFailure
 
 invalidNumberOfArguments :: IO a
 invalidNumberOfArguments = exitWithUsageErrors ["invalid number of arguments\n"]
 
 optionDescription :: [OptDescr (Options -> IO Options)]
-optionDescription = [
-    Option "n" ["name"] (ReqArg (\s opts -> return opts { name = s }) "NAME") "set the variable name ('PATH' by default)",
-    Option "h" ["help"] (NoArg exitWithHelpMessage) "show this message and exit"
-  ]
+optionDescription =
+    [ Option "n" ["name"] (ReqArg (\s opts -> return opts { name = s }) "NAME") "set the variable name ('PATH' by default)"
+    , Option "h" ["help"] (NoArg exitWithHelpMessage) "show this message and exit"
+    ]

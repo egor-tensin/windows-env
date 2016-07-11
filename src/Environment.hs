@@ -4,29 +4,32 @@
  - See LICENSE.txt for details.
 -}
 
-module Environment ( saveToRegistry
-                   , saveToRegistryWithPrompt
-                   , queryFromRegistry
-                   , wipeFromRegistry
-                   , wipeFromRegistryWithPrompt
-                   , getEnv
-                   , splitPaths
-                   , joinPaths
-                   , RegistryBasedEnvironment(..) ) where
+module Environment
+    ( saveToRegistry
+    , saveToRegistryWithPrompt
+    , queryFromRegistry
+    , wipeFromRegistry
+    , wipeFromRegistryWithPrompt
+    , getEnv
+    , splitPaths
+    , joinPaths
+    , RegistryBasedEnvironment(..)
+    ) where
 
-import Control.Monad ( liftM, when )
-import Data.List ( intercalate )
-import Data.List.Split ( splitOn )
-import Data.Maybe ( fromMaybe )
-import qualified System.Environment ( lookupEnv )
-import System.IO.Error ( catchIOError, isDoesNotExistError )
+import Control.Monad (liftM, when)
+import Data.List (intercalate)
+import Data.List.Split (splitOn)
+import Data.Maybe (fromMaybe)
+import qualified System.Environment (lookupEnv)
+import System.IO.Error (catchIOError, isDoesNotExistError)
 
 import qualified Registry
-import qualified Utils ( promptToContinue )
+import qualified Utils (promptToContinue)
 
-data RegistryBasedEnvironment = CurrentUserEnvironment
-                              | AllUsersEnvironment
-                              deriving (Eq, Show)
+data RegistryBasedEnvironment
+    = CurrentUserEnvironment
+    | AllUsersEnvironment
+    deriving (Eq, Show)
 
 registrySubKeyPath :: RegistryBasedEnvironment -> String
 registrySubKeyPath CurrentUserEnvironment = "Environment"
@@ -45,12 +48,12 @@ saveToRegistry env = Registry.setString (registryKey env) (registrySubKeyPath en
 
 saveToRegistryWithPrompt :: RegistryBasedEnvironment -> String -> String -> IO ()
 saveToRegistryWithPrompt env name value = do
-  putStrLn $ "Saving variable '" ++ name ++ "' to '" ++ registryKeyPath env ++ "'..."
-  oldValue <- queryFromRegistry env name
-  putStrLn $ "\tOld value: " ++ oldValue
-  putStrLn $ "\tNew value: " ++ value
-  agreed <- Utils.promptToContinue
-  when agreed $ saveToRegistry env name value
+    putStrLn $ "Saving variable '" ++ name ++ "' to '" ++ registryKeyPath env ++ "'..."
+    oldValue <- queryFromRegistry env name
+    putStrLn $ "\tOld value: " ++ oldValue
+    putStrLn $ "\tNew value: " ++ value
+    agreed <- Utils.promptToContinue
+    when agreed $ saveToRegistry env name value
 
 queryFromRegistry :: RegistryBasedEnvironment -> String -> IO String
 queryFromRegistry env name = catchIOError (Registry.getString (registryKey env) (registrySubKeyPath env) name) emptyIfDoesNotExist
@@ -66,9 +69,9 @@ wipeFromRegistry env name = catchIOError (Registry.delValue (registryKey env) (r
 
 wipeFromRegistryWithPrompt :: RegistryBasedEnvironment -> String -> IO ()
 wipeFromRegistryWithPrompt env name = do
-  putStrLn $ "Deleting variable '" ++ name ++ "' from '" ++ registryKeyPath env ++ "'..."
-  agreed <- Utils.promptToContinue
-  when agreed $ wipeFromRegistry env name
+    putStrLn $ "Deleting variable '" ++ name ++ "' from '" ++ registryKeyPath env ++ "'..."
+    agreed <- Utils.promptToContinue
+    when agreed $ wipeFromRegistry env name
 
 getEnv :: String -> IO String
 getEnv = liftM (fromMaybe "") . System.Environment.lookupEnv
