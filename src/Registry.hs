@@ -4,11 +4,12 @@
  - See LICENSE.txt for details.
 -}
 
-module RegUtils ( delValue
+module Registry ( delValue
                 , getString
                 , hkcu
                 , hklm
-                , setString ) where
+                , setString
+                , KeyHandle ) where
 
 import Control.Exception ( bracket )
 import Data.Maybe ( fromMaybe )
@@ -21,10 +22,12 @@ import System.IO.Error ( mkIOError, doesNotExistErrorType )
 import System.Win32.Types
 import System.Win32.Registry
 
+newtype KeyHandle = KeyHandle HKEY
+
 getType :: HKEY -> String -> String -> IO (Maybe RegValueType)
 getType key subKeyPath valueName =
-  bracket (regOpenKey key subKeyPath) regCloseKey $ \key ->
-  withForeignPtr key $ \p_key ->
+  bracket (regOpenKey key subKeyPath) regCloseKey $ \hKey ->
+  withForeignPtr hKey $ \p_key ->
   withTString valueName $ \p_valueName ->
   alloca $ \p_type -> do
     ret <- c_RegQueryValueEx p_key p_valueName nullPtr p_type nullPtr nullPtr
@@ -35,10 +38,10 @@ getType key subKeyPath valueName =
       0x2 -> return Nothing
       _   -> failWith "RegQueryValueEx" ret
 
-getString :: HKEY -> String -> String -> IO String
-getString key subKeyPath valueName =
-  bracket (regOpenKey key subKeyPath) regCloseKey $ \key ->
-  withForeignPtr key $ \p_key ->
+getString :: KeyHandle -> String -> String -> IO String
+getString (KeyHandle hKey) subKeyPath valueName =
+  bracket (regOpenKey hKey subKeyPath) regCloseKey $ \hSubKey ->
+  withForeignPtr hSubKey $ \p_key ->
   withTString valueName $ \p_valueName ->
   alloca $ \dataSizePtr -> do
     poke dataSizePtr 0
@@ -56,11 +59,11 @@ getString key subKeyPath valueName =
       0x2 -> ioError $ mkIOError doesNotExistErrorType "RegQueryValueEx" Nothing $ Just (subKeyPath ++ "\\" ++ valueName)
       _   -> failWith "RegQueryValueEx" ret
 
-setString :: HKEY -> String -> String -> String -> IO ()
-setString key subKeyPath valueName valueValue =
-  bracket (regOpenKey key subKeyPath) regCloseKey $ \subKey ->
+setString :: KeyHandle -> String -> String -> String -> IO ()
+setString (KeyHandle hKey) subKeyPath valueName valueValue =
+  bracket (regOpenKey hKey subKeyPath) regCloseKey $ \subKey ->
   withTString valueValue $ \p_valueValue -> do
-    type_ <- getType key subKeyPath valueName
+    type_ <- getType hKey subKeyPath valueName
     regSetValueEx subKey valueName (fromMaybe rEG_SZ type_) p_valueValue $ (length valueValue + 1) * sizeOf (undefined :: TCHAR)
     notifyEnvironmentUpdate
 
@@ -70,14 +73,14 @@ notifyEnvironmentUpdate =
     let wparam = 0
     let lparam = fromIntegral $ castPtrToUINTPtr p_lparam
     let hwnd = castUINTPtrToPtr 0xffff
-    sendMessage hwnd wM_SETTINGCHANGE wparam lparam
+    _ <- sendMessage hwnd wM_SETTINGCHANGE wparam lparam
     return ()
       where
         wM_SETTINGCHANGE = 0x1A
 
-delValue :: HKEY -> String -> String -> IO ()
-delValue key subKeyPath valueName =
-  bracket (regOpenKey key subKeyPath) regCloseKey $ \subKey ->
+delValue :: KeyHandle -> String -> String -> IO ()
+delValue (KeyHandle hKey) subKeyPath valueName =
+  bracket (regOpenKey hKey subKeyPath) regCloseKey $ \subKey ->
   withForeignPtr subKey $ \subKeyPtr ->
   withTString valueName $ \p_valueName -> do
     ret <- c_RegDeleteValue subKeyPtr p_valueName
@@ -87,5 +90,8 @@ delValue key subKeyPath valueName =
       0x2 -> ioError $ mkIOError doesNotExistErrorType "RegQueryValueEx" Nothing $ Just (subKeyPath ++ "\\" ++ valueName)
       _   -> failWith "RegDeleteValue" ret
 
-hkcu = hKEY_CURRENT_USER
-hklm = hKEY_LOCAL_MACHINE
+hkcu :: KeyHandle
+hkcu = KeyHandle hKEY_CURRENT_USER
+
+hklm :: KeyHandle
+hklm = KeyHandle hKEY_LOCAL_MACHINE

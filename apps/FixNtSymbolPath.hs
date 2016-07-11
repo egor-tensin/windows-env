@@ -10,7 +10,7 @@ import Control.Monad ( unless )
 import System.Directory ( createDirectoryIfMissing, getCurrentDirectory )
 import System.FilePath ( combine )
 
-import qualified EnvUtils
+import qualified Environment
 
 getRemoteSymbolsDirectoryPath :: IO String
 getRemoteSymbolsDirectoryPath = do
@@ -34,16 +34,16 @@ getPdbsDirectoryPath = do
 
 fixNtSymbolPath :: IO ()
 fixNtSymbolPath = do
-  let env = EnvUtils.CurrentUserEnvironment
-  val <- EnvUtils.queryFromRegistry env ntSymbolPath
-  let presentPaths = EnvUtils.splitPaths val
+  let env = Environment.CurrentUserEnvironment
+  val <- Environment.queryFromRegistry env ntSymbolPath
+  let presentPaths = Environment.splitPaths val
   remoteSymbolsPath <- getRemoteSymbolsDirectoryPath
   pdbsPath <- getPdbsDirectoryPath
   let requiredPaths = [pdbsPath, remoteSymbolsPath]
   let missingPaths = filter (`notElem` presentPaths) requiredPaths
   unless (null missingPaths) $ do
-    let newval = EnvUtils.joinPaths $ presentPaths ++ missingPaths
-    EnvUtils.saveToRegistry env ntSymbolPath newval
+    let newval = Environment.joinPaths $ presentPaths ++ missingPaths
+    Environment.saveToRegistry env ntSymbolPath newval
   where
     ntSymbolPath = "_NT_SYMBOL_PATH"
 

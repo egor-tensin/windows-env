@@ -12,7 +12,7 @@ import System.Environment ( getArgs, getProgName )
 import System.Exit ( exitFailure, exitSuccess )
 import System.IO ( hPutStr, stderr )
 
-import qualified EnvUtils
+import qualified Environment
 
 main :: IO ()
 main = do
@@ -27,20 +27,20 @@ addPath :: [String] -> Options -> IO ()
 addPath paths options = do
   missingPaths <- dropIncludedPaths paths
   when (not $ null missingPaths) $ do
-    oldPath <- EnvUtils.queryFromRegistry (env options) (name options)
-    EnvUtils.saveToRegistryWithPrompt (env options) (name options) $ EnvUtils.joinPaths $ missingPaths ++ [oldPath]
+    oldPath <- Environment.queryFromRegistry (env options) (name options)
+    Environment.saveToRegistryWithPrompt (env options) (name options) $ Environment.joinPaths $ missingPaths ++ [oldPath]
       where
         dropIncludedPaths paths = do
-          currentPath <- EnvUtils.getEnv $ name options
-          return $ filter (flip notElem $ EnvUtils.splitPaths currentPath) paths
+          currentPath <- Environment.getEnv $ name options
+          return $ filter (flip notElem $ Environment.splitPaths currentPath) paths
 
 data Options = Options { name :: String
-                       , env :: EnvUtils.RegistryBasedEnvironment }
+                       , env :: Environment.RegistryBasedEnvironment }
                        deriving (Eq, Show)
 
 defaultOptions :: Options
 defaultOptions = Options { name = "PATH"
-                         , env = EnvUtils.CurrentUserEnvironment }
+                         , env = Environment.CurrentUserEnvironment }
 
 buildHelpMessage :: IO String
 buildHelpMessage = do
@@ -71,6 +71,6 @@ invalidNumberOfArguments = exitWithUsageErrors ["invalid number of arguments\n"]
 optionDescription :: [OptDescr (Options -> IO Options)]
 optionDescription = [
     Option "n" ["name"] (ReqArg (\s opts -> return opts { name = s }) "NAME") "set the variable name ('PATH' by default)",
-    Option "g" ["global"] (NoArg $ \opts -> return opts { env = EnvUtils.AllUsersEnvironment }) "add the path for all users",
+    Option "g" ["global"] (NoArg $ \opts -> return opts { env = Environment.AllUsersEnvironment }) "add the path for all users",
     Option "h" ["help"] (NoArg exitWithHelpMessage) "show this message and exit"
   ]

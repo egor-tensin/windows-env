@@ -12,7 +12,7 @@ import System.Environment ( getArgs, getProgName )
 import System.Exit ( exitFailure, exitSuccess )
 import System.IO ( hPutStr, stderr )
 
-import qualified EnvUtils
+import qualified Environment
 
 main :: IO ()
 main = do
@@ -26,17 +26,17 @@ main = do
 removePath :: [String] -> Options -> IO ()
 removePath paths options = do
   let varName = name options
-  userVal <- EnvUtils.queryFromRegistry EnvUtils.CurrentUserEnvironment varName
-  let userValParts = EnvUtils.splitPaths userVal
+  userVal <- Environment.queryFromRegistry Environment.CurrentUserEnvironment varName
+  let userValParts = Environment.splitPaths userVal
   let newUserValParts = filter (`notElem` paths) userValParts
   when (length userValParts /= length newUserValParts) $ do
-    EnvUtils.saveToRegistryWithPrompt EnvUtils.CurrentUserEnvironment varName $ EnvUtils.joinPaths newUserValParts
+    Environment.saveToRegistryWithPrompt Environment.CurrentUserEnvironment varName $ Environment.joinPaths newUserValParts
   when (global options) $ do
-    globalVal <- EnvUtils.queryFromRegistry EnvUtils.AllUsersEnvironment varName
-    let globalValParts = EnvUtils.splitPaths globalVal
+    globalVal <- Environment.queryFromRegistry Environment.AllUsersEnvironment varName
+    let globalValParts = Environment.splitPaths globalVal
     let newGlobalValParts = filter (`notElem` paths) globalValParts
     when (length globalValParts /= length newGlobalValParts) $ do
-      EnvUtils.saveToRegistryWithPrompt EnvUtils.AllUsersEnvironment varName $ EnvUtils.joinPaths newGlobalValParts
+      Environment.saveToRegistryWithPrompt Environment.AllUsersEnvironment varName $ Environment.joinPaths newGlobalValParts
 
 data Options = Options { name :: String
                        , global :: Bool }

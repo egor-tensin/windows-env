@@ -11,7 +11,7 @@ import System.Environment ( getArgs, getProgName )
 import System.Exit ( exitFailure, exitSuccess )
 import System.IO ( hPutStr, stderr )
 
-import qualified EnvUtils
+import qualified Environment
 
 main :: IO ()
 main = do
@@ -25,12 +25,12 @@ main = do
     (_, _, errorMessages) -> exitWithUsageErrors errorMessages
 
 unsetEnv :: String -> Options -> IO ()
-unsetEnv name options = EnvUtils.wipeFromRegistryWithPrompt (env options) name
+unsetEnv name options = Environment.wipeFromRegistryWithPrompt (env options) name
 
-data Options = Options { env :: EnvUtils.RegistryBasedEnvironment } deriving (Eq, Show)
+data Options = Options { env :: Environment.RegistryBasedEnvironment } deriving (Eq, Show)
 
 defaultOptions :: Options
-defaultOptions = Options { env = EnvUtils.CurrentUserEnvironment }
+defaultOptions = Options { env = Environment.CurrentUserEnvironment }
 
 buildHelpMessage :: IO String
 buildHelpMessage = do
@@ -60,6 +60,6 @@ invalidNumberOfArguments = exitWithUsageErrors ["invalid number of arguments\n"]
 
 optionDescription :: [OptDescr (Options -> IO Options)]
 optionDescription = [
-    Option "g" ["global"] (NoArg $ \opts -> return opts { env = EnvUtils.AllUsersEnvironment }) "delete from the registry key for all users",
+    Option "g" ["global"] (NoArg $ \opts -> return opts { env = Environment.AllUsersEnvironment }) "delete from the registry key for all users",
     Option "h" ["help"] (NoArg exitWithHelpMessage) "show this message and exit"
   ]

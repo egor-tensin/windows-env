@@ -12,7 +12,7 @@ import System.Environment ( getArgs, getProgName )
 import System.Exit ( exitFailure, exitSuccess )
 import System.IO ( hPutStr, stderr )
 
-import qualified EnvUtils
+import qualified Environment
 
 main :: IO ()
 main = do
@@ -27,8 +27,8 @@ main = do
 
 listPath :: Options -> IO ()
 listPath options = do
-  val <- EnvUtils.getEnv $ name options
-  mapM_ printPath $ EnvUtils.splitPaths val
+  val <- Environment.getEnv $ name options
+  mapM_ printPath $ Environment.splitPaths val
     where
       printPath p = do
         exists <- doesDirectoryExist p

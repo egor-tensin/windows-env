@@ -11,7 +11,7 @@ import System.Environment ( getArgs, getProgName )
 import System.Exit ( exitFailure, exitSuccess )
 import System.IO ( hPutStr, stderr )
 
-import qualified EnvUtils
+import qualified Environment
 
 main :: IO ()
 main = do
@@ -26,12 +26,12 @@ main = do
       exitWithUsageErrors errorMessages
 
 setEnv :: String -> String -> Options -> IO ()
-setEnv name value options = EnvUtils.saveToRegistryWithPrompt (env options) name value
+setEnv name value options = Environment.saveToRegistryWithPrompt (env options) name value
 
-data Options = Options { env :: EnvUtils.RegistryBasedEnvironment } deriving (Eq, Show)
+data Options = Options { env :: Environment.RegistryBasedEnvironment } deriving (Eq, Show)
 
 defaultOptions :: Options
-defaultOptions = Options { env = EnvUtils.CurrentUserEnvironment }
+defaultOptions = Options { env = Environment.CurrentUserEnvironment }
 
 buildHelpMessage :: IO String
 buildHelpMessage = do
@@ -61,6 +61,6 @@ invalidNumberOfArguments = exitWithUsageErrors ["invalid number of arguments\n"]
 
 optionDescription :: [OptDescr (Options -> IO Options)]
 optionDescription = [
-    Option "g" ["global"] (NoArg $ \opts -> return opts { env = EnvUtils.AllUsersEnvironment }) "save under the registry key for all users",
+    Option "g" ["global"] (NoArg $ \opts -> return opts { env = Environment.AllUsersEnvironment }) "save under the registry key for all users",
     Option "h" ["help"] (NoArg exitWithHelpMessage) "show this message and exit"
   ]
