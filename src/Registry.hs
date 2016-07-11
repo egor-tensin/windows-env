@@ -5,96 +5,146 @@
 -}
 
 module Registry
-    ( KeyHandle
+    ( KeyPath
+    , keyPathFromString
+    , keyPathJoin
+    , keyPathSplit
+
+    , KeyHandle
+    , openSubKey
+
+    , RootKey(..)
+    , openRootKey
+    , rootKeyPath
+
+    , ValueName
     , delValue
+
+    , ValueData
     , getString
     , setString
-    , hkcu
-    , hklm
     ) where
 
-import Control.Exception (bracket)
-import Data.Maybe (fromMaybe)
-import Foreign.ForeignPtr (withForeignPtr)
+import Data.List             (intercalate)
+import Data.List.Split       (splitOn)
+import Foreign.ForeignPtr    (withForeignPtr)
 import Foreign.Marshal.Alloc (alloca, allocaBytes)
-import Foreign.Ptr (castPtr, plusPtr)
-import Foreign.Storable (peek, poke, sizeOf)
-import Graphics.Win32.Window (sendMessage)
-import System.IO.Error (mkIOError, doesNotExistErrorType)
+import Foreign.Ptr           (castPtr, plusPtr)
+import Foreign.Storable      (peek, poke, sizeOf)
+import System.IO.Error       (catchIOError, doesNotExistErrorType, mkIOError, isDoesNotExistError)
 
-import System.Win32.Types
-import System.Win32.Registry
+import qualified System.Win32.Types    as WinAPI
+import qualified System.Win32.Registry as WinAPI
 
-newtype KeyHandle = KeyHandle HKEY
+type KeyName = String
+type KeyPath = KeyName
 
-getType :: HKEY -> String -> String -> IO (Maybe RegValueType)
-getType key subKeyPath valueName =
-    bracket (regOpenKey key subKeyPath) regCloseKey $ \hKey ->
-    withForeignPtr hKey $ \p_key ->
-    withTString valueName $ \p_valueName ->
-    alloca $ \p_type -> do
-        ret <- c_RegQueryValueEx p_key p_valueName nullPtr p_type nullPtr nullPtr
-        case ret of
-            0x0 -> do
-                type_ <- peek p_type
-                return $ Just type_
-            0x2 -> return Nothing
-            _   -> failWith "RegQueryValueEx" ret
+keyPathSep :: KeyPath
+keyPathSep = "\\"
 
-getString :: KeyHandle -> String -> String -> IO String
-getString (KeyHandle hKey) subKeyPath valueName =
-    bracket (regOpenKey hKey subKeyPath) regCloseKey $ \hSubKey ->
-    withForeignPtr hSubKey $ \p_key ->
-    withTString valueName $ \p_valueName ->
+keyPathFromString :: String -> KeyPath
+keyPathFromString = keyPathJoin . keyPathSplit
+
+keyPathSplit :: KeyPath -> [KeyName]
+keyPathSplit = filter (not . null) . splitOn keyPathSep
+
+keyPathJoin :: [KeyName] -> KeyPath
+keyPathJoin = intercalate keyPathSep . filter (not . null)
+
+type KeyHandle = WinAPI.HKEY
+
+openSubKey :: KeyHandle -> KeyPath -> IO KeyHandle
+openSubKey = WinAPI.regOpenKey
+
+data RootKey = CurrentUser
+             | LocalMachine
+             deriving (Eq, Show)
+
+rootKeyPath :: RootKey -> KeyName
+rootKeyPath CurrentUser  = "HKCU"
+rootKeyPath LocalMachine = "HKLM"
+
+openRootKey :: RootKey -> KeyHandle
+openRootKey CurrentUser  = WinAPI.hKEY_CURRENT_USER
+openRootKey LocalMachine = WinAPI.hKEY_LOCAL_MACHINE
+
+type ValueName = String
+
+raiseDoesNotExistError :: String -> IO a
+raiseDoesNotExistError functionName =
+    ioError $ mkIOError doesNotExistErrorType functionName Nothing Nothing
+
+raiseUnknownError :: String -> WinAPI.ErrCode -> IO a
+raiseUnknownError functionName exitCode = WinAPI.failWith functionName exitCode
+
+exitCodeSuccess :: WinAPI.ErrCode
+exitCodeSuccess = 0
+
+exitCodeFileNotFound :: WinAPI.ErrCode
+exitCodeFileNotFound = 0x2
+
+exitCodeMoreData :: WinAPI.ErrCode
+exitCodeMoreData = 0xea
+
+raiseError :: String -> WinAPI.ErrCode -> IO a
+raiseError functionName ret
+    | ret == exitCodeFileNotFound = raiseDoesNotExistError functionName
+    | otherwise                   = raiseUnknownError functionName ret
+
+delValue :: KeyHandle -> ValueName -> IO ()
+delValue keyHandle valueName =
+    withForeignPtr keyHandle $ \keyPtr ->
+    WinAPI.withTString valueName $ \valueNamePtr -> do
+        ret <- WinAPI.c_RegDeleteValue keyPtr valueNamePtr
+        if ret == exitCodeSuccess
+            then return ()
+            else raiseError "RegDeleteValue" ret
+
+type ValueType = WinAPI.RegValueType
+
+getType :: KeyHandle -> ValueName -> IO ValueType
+getType keyHandle valueName =
+    withForeignPtr keyHandle $ \keyPtr ->
+    WinAPI.withTString valueName $ \valueNamePtr ->
+    alloca $ \typePtr -> do
+        ret <- WinAPI.c_RegQueryValueEx keyPtr valueNamePtr WinAPI.nullPtr typePtr WinAPI.nullPtr WinAPI.nullPtr
+        if ret == exitCodeSuccess
+            then peek typePtr
+            else raiseError "RegQueryValueEx" ret
+
+type ValueData = String
+
+getString :: KeyHandle -> ValueName -> IO ValueData
+getString keyHandle valueName =
+    withForeignPtr keyHandle $ \keyPtr ->
+    WinAPI.withTString valueName $ \valueNamePtr ->
     alloca $ \dataSizePtr -> do
         poke dataSizePtr 0
-        ret <- c_RegQueryValueEx p_key p_valueName nullPtr nullPtr nullPtr dataSizePtr
-        case ret of
-            0x0 -> do
-                dataSize <- peek dataSizePtr
-                let newDataSize = dataSize + fromIntegral (sizeOf (undefined :: TCHAR))
-                poke dataSizePtr newDataSize
-                allocaBytes (fromIntegral newDataSize) $ \dataPtr -> do
-                    poke (castPtr $ plusPtr dataPtr $ fromIntegral dataSize) '\0'
-                    failUnlessSuccess "RegQueryValueEx" $
-                        c_RegQueryValueEx p_key p_valueName nullPtr nullPtr dataPtr dataSizePtr
-                    peekTString $ castPtr dataPtr
-            0x2 -> ioError $ mkIOError doesNotExistErrorType "RegQueryValueEx" Nothing $ Just (subKeyPath ++ "\\" ++ valueName)
-            _   -> failWith "RegQueryValueEx" ret
-
-setString :: KeyHandle -> String -> String -> String -> IO ()
-setString (KeyHandle hKey) subKeyPath valueName valueValue =
-    bracket (regOpenKey hKey subKeyPath) regCloseKey $ \subKey ->
-    withTString valueValue $ \p_valueValue -> do
-        type_ <- getType hKey subKeyPath valueName
-        regSetValueEx subKey valueName (fromMaybe rEG_SZ type_) p_valueValue $ (length valueValue + 1) * sizeOf (undefined :: TCHAR)
-        notifyEnvironmentUpdate
-
-notifyEnvironmentUpdate :: IO ()
-notifyEnvironmentUpdate =
-    withTString "Environment" $ \p_lparam -> do
-        let wparam = 0
-        let lparam = fromIntegral $ castPtrToUINTPtr p_lparam
-        let hwnd = castUINTPtrToPtr 0xffff
-        _ <- sendMessage hwnd wM_SETTINGCHANGE wparam lparam
-        return ()
+        ret <- WinAPI.c_RegQueryValueEx keyPtr valueNamePtr WinAPI.nullPtr WinAPI.nullPtr WinAPI.nullPtr dataSizePtr
+        if ret == exitCodeSuccess
+            then return ""
+            else if ret /= exitCodeMoreData
+                then raiseError "RegQueryValueEx" ret
+                else getStringTerminated keyPtr valueNamePtr dataSizePtr
   where
-    wM_SETTINGCHANGE = 0x1A
+    getStringTerminated keyPtr valueNamePtr dataSizePtr = do
+        dataSize <- peek dataSizePtr
+        let newDataSize = dataSize + fromIntegral (sizeOf (undefined :: WinAPI.TCHAR))
+        poke dataSizePtr newDataSize
+        allocaBytes (fromIntegral newDataSize) $ \dataPtr -> do
+            poke (castPtr $ plusPtr dataPtr $ fromIntegral dataSize) '\0'
+            ret <- WinAPI.c_RegQueryValueEx keyPtr valueNamePtr WinAPI.nullPtr WinAPI.nullPtr dataPtr dataSizePtr
+            if ret == exitCodeSuccess
+                then WinAPI.peekTString $ castPtr dataPtr
+                else raiseError "RegQueryValueEx" ret
 
-delValue :: KeyHandle -> String -> String -> IO ()
-delValue (KeyHandle hKey) subKeyPath valueName =
-    bracket (regOpenKey hKey subKeyPath) regCloseKey $ \subKey ->
-    withForeignPtr subKey $ \subKeyPtr ->
-    withTString valueName $ \p_valueName -> do
-        ret <- c_RegDeleteValue subKeyPtr p_valueName
-        notifyEnvironmentUpdate
-        case ret of
-            0x0 -> return ()
-            0x2 -> ioError $ mkIOError doesNotExistErrorType "RegQueryValueEx" Nothing $ Just (subKeyPath ++ "\\" ++ valueName)
-            _   -> failWith "RegDeleteValue" ret
-
-hkcu :: KeyHandle
-hkcu = KeyHandle hKEY_CURRENT_USER
-
-hklm :: KeyHandle
-hklm = KeyHandle hKEY_LOCAL_MACHINE
+setString :: KeyHandle -> ValueName -> ValueData -> IO ()
+setString key name value =
+    WinAPI.withTString value $ \valuePtr -> do
+        type_ <- catchIOError (getType key name) stringTypeByDefault
+        WinAPI.regSetValueEx key name type_ valuePtr valueSize
+  where
+    stringTypeByDefault e = if isDoesNotExistError e
+        then return WinAPI.rEG_SZ
+        else ioError e
+    valueSize = (length value + 1) * sizeOf (undefined :: WinAPI.TCHAR)
