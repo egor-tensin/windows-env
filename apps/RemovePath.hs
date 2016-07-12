@@ -42,14 +42,14 @@ main = execParser parser >>= removePath
 removePath :: Options -> IO ()
 removePath options = do
     let varName = name options
-    userVal <- Environment.queryFromRegistry Environment.CurrentUserEnvironment varName
-    let userValParts = Environment.splitPaths userVal
+    userVal <- Environment.query Environment.CurrentUser varName
+    let userValParts = Environment.pathSplit userVal
     let newUserValParts = filter (flip notElem $ paths options) userValParts
     when (length userValParts /= length newUserValParts) $ do
-        Environment.saveToRegistryWithPrompt Environment.CurrentUserEnvironment varName $ Environment.joinPaths newUserValParts
+        Environment.engraveWithPrompt Environment.CurrentUser varName $ Environment.pathJoin newUserValParts
     when (global options) $ do
-        globalVal <- Environment.queryFromRegistry Environment.AllUsersEnvironment varName
-        let globalValParts = Environment.splitPaths globalVal
+        globalVal <- Environment.query Environment.AllUsers varName
+        let globalValParts = Environment.pathSplit globalVal
         let newGlobalValParts = filter (flip notElem $ paths options) globalValParts
         when (length globalValParts /= length newGlobalValParts) $ do
-            Environment.saveToRegistryWithPrompt Environment.AllUsersEnvironment varName $ Environment.joinPaths newGlobalValParts
+            Environment.engraveWithPrompt Environment.AllUsers varName $ Environment.pathJoin newGlobalValParts

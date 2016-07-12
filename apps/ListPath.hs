@@ -6,7 +6,10 @@
 
 module Main (main) where
 
-import System.Directory (doesDirectoryExist)
+import Control.Monad      (liftM)
+import Data.Maybe         (fromMaybe)
+import System.Directory   (doesDirectoryExist)
+import System.Environment (lookupEnv)
 
 import Options.Applicative
 
@@ -29,10 +32,13 @@ main = execParser parser >>= listPath
     parser = info (helper <*> options) $
         fullDesc <> progDesc "List directories in your PATH"
 
+getEnv :: String -> IO String
+getEnv = liftM (fromMaybe "") . lookupEnv
+
 listPath :: Options -> IO ()
 listPath options = do
-    val <- Environment.getEnv $ name options
-    mapM_ printPath $ Environment.splitPaths val
+    val <- getEnv $ name options
+    mapM_ printPath $ Environment.pathSplit val
   where
     printPath p = do
         exists <- doesDirectoryExist p

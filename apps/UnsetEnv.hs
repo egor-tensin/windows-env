@@ -34,7 +34,7 @@ main = execParser parser >>= unsetEnv
         fullDesc <> progDesc "Unset environment variables"
 
 unsetEnv :: Options -> IO ()
-unsetEnv options = Environment.wipeFromRegistryWithPrompt env $ name options
+unsetEnv options = Environment.wipeWithPrompt env $ name options
   where
-    env | global options = Environment.AllUsersEnvironment
-        | otherwise      = Environment.CurrentUserEnvironment
+    env | global options = Environment.AllUsers
+        | otherwise      = Environment.CurrentUser

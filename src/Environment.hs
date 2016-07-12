@@ -5,23 +5,21 @@
 -}
 
 module Environment
-    ( queryFromRegistry
-    , saveToRegistry
-    , saveToRegistryWithPrompt
-    , wipeFromRegistry
-    , wipeFromRegistryWithPrompt
-    , getEnv
-    , splitPaths
-    , joinPaths
-    , RegistryBasedEnvironment(..)
+    ( RegistryLocation(..)
+    , query
+    , engrave
+    , engraveWithPrompt
+    , wipe
+    , wipeWithPrompt
+
+    , pathJoin
+    , pathSplit
     ) where
 
-import           Control.Monad      (liftM, when)
-import           Data.List          (intercalate)
-import           Data.List.Split    (splitOn)
-import           Data.Maybe         (fromMaybe)
-import qualified System.Environment (lookupEnv)
-import           System.IO.Error    (catchIOError, isDoesNotExistError)
+import Control.Monad   (when)
+import Data.List       (intercalate)
+import Data.List.Split (splitOn)
+import System.IO.Error (catchIOError, isDoesNotExistError)
 
 import qualified Graphics.Win32.Window as WinAPI
 import qualified System.Win32.Types    as WinAPI
@@ -29,28 +27,28 @@ import qualified System.Win32.Types    as WinAPI
 import qualified Registry
 import qualified Utils (promptToContinue)
 
-data RegistryBasedEnvironment
-    = CurrentUserEnvironment
-    | AllUsersEnvironment
+data RegistryLocation
+    = CurrentUser
+    | AllUsers
     deriving (Eq, Show)
 
-subKeyPath :: RegistryBasedEnvironment -> Registry.KeyPath
-subKeyPath CurrentUserEnvironment =
+subKeyPath :: RegistryLocation -> Registry.KeyPath
+subKeyPath CurrentUser =
     Registry.keyPathFromString "Environment"
-subKeyPath AllUsersEnvironment =
+subKeyPath AllUsers =
     Registry.keyPathFromString "SYSTEM\\CurrentControlSet\\Control\\Session Manager\\Environment"
 
-rootKey :: RegistryBasedEnvironment -> Registry.RootKey
-rootKey CurrentUserEnvironment = Registry.CurrentUser
-rootKey AllUsersEnvironment    = Registry.LocalMachine
+rootKey :: RegistryLocation -> Registry.RootKey
+rootKey CurrentUser = Registry.CurrentUser
+rootKey AllUsers    = Registry.LocalMachine
 
-openRootKey :: RegistryBasedEnvironment -> Registry.KeyHandle
+openRootKey :: RegistryLocation -> Registry.KeyHandle
 openRootKey = Registry.openRootKey . rootKey
 
-openRegistryKey :: RegistryBasedEnvironment -> IO Registry.KeyHandle
+openRegistryKey :: RegistryLocation -> IO Registry.KeyHandle
 openRegistryKey env = Registry.openSubKey (openRootKey env) (subKeyPath env)
 
-registryKeyPath :: RegistryBasedEnvironment -> Registry.KeyPath
+registryKeyPath :: RegistryLocation -> Registry.KeyPath
 registryKeyPath env = Registry.keyPathJoin [Registry.rootKeyPath $ rootKey env, subKeyPath env]
 
 notifyEnvUpdate :: IO ()
@@ -66,50 +64,47 @@ notifyEnvUpdate =
 
     allWindows = WinAPI.castUINTPtrToPtr 0xffff
 
-saveToRegistry :: RegistryBasedEnvironment -> Registry.ValueName -> Registry.ValueData -> IO ()
-saveToRegistry env name value = do
-    keyHandle <- openRegistryKey env
-    Registry.setString keyHandle name value
-    notifyEnvUpdate
-
-saveToRegistryWithPrompt :: RegistryBasedEnvironment -> Registry.ValueName -> Registry.ValueData -> IO ()
-saveToRegistryWithPrompt env name value = do
-    putStrLn $ "Saving variable '" ++ name ++ "' to '" ++ registryKeyPath env ++ "'..."
-    oldValue <- queryFromRegistry env name
-    putStrLn $ "\tOld value: " ++ oldValue
-    putStrLn $ "\tNew value: " ++ value
-    agreed <- Utils.promptToContinue
-    when agreed $ saveToRegistry env name value
-
-queryFromRegistry :: RegistryBasedEnvironment -> Registry.ValueName -> IO Registry.ValueData
-queryFromRegistry env name = do
+query :: RegistryLocation -> Registry.ValueName -> IO Registry.ValueData
+query env name = do
     keyHandle <- openRegistryKey env
     catchIOError (Registry.getString keyHandle name) emptyIfDoesNotExist
   where
     emptyIfDoesNotExist e = if isDoesNotExistError e then return "" else ioError e
 
-wipeFromRegistry :: RegistryBasedEnvironment -> Registry.ValueName -> IO ()
-wipeFromRegistry env name = do
+engrave :: RegistryLocation -> Registry.ValueName -> Registry.ValueData -> IO ()
+engrave env name value = do
+    keyHandle <- openRegistryKey env
+    Registry.setString keyHandle name value
+    notifyEnvUpdate
+
+engraveWithPrompt :: RegistryLocation -> Registry.ValueName -> Registry.ValueData -> IO ()
+engraveWithPrompt env name value = do
+    putStrLn $ "Saving variable '" ++ name ++ "' to '" ++ registryKeyPath env ++ "'..."
+    oldValue <- query env name
+    putStrLn $ "\tOld value: " ++ oldValue
+    putStrLn $ "\tNew value: " ++ value
+    agreed <- Utils.promptToContinue
+    when agreed $ engrave env name value
+
+wipe :: RegistryLocation -> Registry.ValueName -> IO ()
+wipe env name = do
     keyHandle <- openRegistryKey env
     catchIOError (Registry.delValue keyHandle name) ignoreIfDoesNotExist
     notifyEnvUpdate
   where
     ignoreIfDoesNotExist e = if isDoesNotExistError e then return () else ioError e
 
-wipeFromRegistryWithPrompt :: RegistryBasedEnvironment -> Registry.ValueName -> IO ()
-wipeFromRegistryWithPrompt env name = do
+wipeWithPrompt :: RegistryLocation -> Registry.ValueName -> IO ()
+wipeWithPrompt env name = do
     putStrLn $ "Deleting variable '" ++ name ++ "' from '" ++ registryKeyPath env ++ "'..."
     agreed <- Utils.promptToContinue
-    when agreed $ wipeFromRegistry env name
-
-getEnv :: String -> IO String
-getEnv = liftM (fromMaybe "") . System.Environment.lookupEnv
+    when agreed $ wipe env name
 
 pathSep :: String
 pathSep = ";"
 
-splitPaths :: String -> [String]
-splitPaths = filter (not . null) . splitOn pathSep
+pathSplit :: String -> [String]
+pathSplit = filter (not . null) . splitOn pathSep
 
-joinPaths :: [String] -> String
-joinPaths = intercalate pathSep . filter (not . null)
+pathJoin :: [String] -> String
+pathJoin = intercalate pathSep . filter (not . null)

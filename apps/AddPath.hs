@@ -44,11 +44,11 @@ addPath :: Options -> IO ()
 addPath options = do
     missingPaths <- dropIncludedPaths $ paths options
     when (not $ null missingPaths) $ do
-        oldPath <- Environment.queryFromRegistry env $ name options
-        Environment.saveToRegistryWithPrompt env (name options) $ Environment.joinPaths $ missingPaths ++ [oldPath]
+        oldPath <- Environment.query env $ name options
+        Environment.engraveWithPrompt env (name options) $ Environment.pathJoin $ missingPaths ++ [oldPath]
   where
     dropIncludedPaths paths = do
-        currentPath <- Environment.getEnv $ name options
-        return $ filter (flip notElem $ Environment.splitPaths currentPath) paths
-    env | global options = Environment.AllUsersEnvironment
-        | otherwise      = Environment.CurrentUserEnvironment
+        currentPath <- Environment.query env $ name options
+        return $ filter (flip notElem $ Environment.pathSplit currentPath) paths
+    env | global options = Environment.AllUsers
+        | otherwise      = Environment.CurrentUser

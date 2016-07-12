@@ -39,7 +39,7 @@ main = execParser parser >>= setEnv
         fullDesc <> progDesc "Set environment variables"
 
 setEnv :: Options -> IO ()
-setEnv options = Environment.saveToRegistryWithPrompt env (name options) (value options)
+setEnv options = Environment.engraveWithPrompt env (name options) (value options)
   where
-    env | global options = Environment.AllUsersEnvironment
-        | otherwise      = Environment.CurrentUserEnvironment
+    env | global options = Environment.AllUsers
+        | otherwise      = Environment.CurrentUser
