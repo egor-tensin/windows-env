@@ -33,8 +33,8 @@ import Foreign.Ptr           (castPtr, plusPtr)
 import Foreign.Storable      (peek, poke, sizeOf)
 import System.IO.Error       (catchIOError, doesNotExistErrorType, mkIOError, isDoesNotExistError)
 
-import qualified System.Win32.Types    as WinAPI
 import qualified System.Win32.Registry as WinAPI
+import qualified System.Win32.Types    as WinAPI
 
 type KeyName = String
 type KeyPath = KeyName
