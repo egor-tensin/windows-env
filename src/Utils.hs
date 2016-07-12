@@ -7,8 +7,8 @@
 module Utils where
 
 import Control.Monad (liftM)
-import Data.Char (toLower)
-import System.IO (hFlush, stdout)
+import Data.Char     (toLower)
+import System.IO     (hFlush, stdout)
 
 prompt :: String -> IO String
 prompt banner = do

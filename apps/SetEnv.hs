@@ -6,64 +6,40 @@
 
 module Main (main) where
 
-import System.Console.GetOpt
-import System.Environment (getArgs, getProgName)
-import System.Exit (exitFailure, exitSuccess)
-import System.IO (hPutStr, stderr)
+import Options.Applicative hiding (value)
 
 import qualified Environment
 
-main :: IO ()
-main = do
-    rawArgs <- getArgs
-    case getOpt Permute optionDescription rawArgs of
-        (actions, args, []) -> do
-            options <- foldl (>>=) (return defaultOptions) actions
-            case args of
-                [name, value] -> setEnv name value options
-                _ -> invalidNumberOfArguments
-        (_, _, errorMessages) ->
-            exitWithUsageErrors errorMessages
-
-setEnv :: String -> String -> Options -> IO ()
-setEnv name value options = Environment.saveToRegistryWithPrompt (env options) name value
-
 data Options = Options
-    { env :: Environment.RegistryBasedEnvironment
+    { global :: Bool
+    , name :: String
+    , value :: String
     } deriving (Eq, Show)
 
-defaultOptions :: Options
-defaultOptions = Options
-    { env = Environment.CurrentUserEnvironment
-    }
-
-buildHelpMessage :: IO String
-buildHelpMessage = do
-    header <- buildHeader
-    return $ usageInfo header optionDescription
+options :: Parser Options
+options = Options
+    <$> globalOption
+    <*> nameArg
+    <*> valueArg
   where
-    buildHeader = do
-        progName <- getProgName
-        return $ "Usage: " ++ progName ++ " [OPTIONS...] NAME VALUE\nOptions:"
+    globalOption = switch $
+        long "global" <> short 'g' <>
+        help "Whether to set for all users"
+    nameArg = argument str $
+        metavar "NAME" <>
+        help "Variable name"
+    valueArg = argument str $
+        metavar "VALUE" <>
+        help "Variable value"
 
-exitWithHelpMessage :: Options -> IO a
-exitWithHelpMessage _ = do
-    helpMessage <- buildHelpMessage
-    putStr helpMessage
-    exitSuccess
+main :: IO ()
+main = execParser parser >>= setEnv
+  where
+    parser = info (helper <*> options) $
+        fullDesc <> progDesc "Set environment variables"
 
-exitWithUsageErrors :: [String] -> IO a
-exitWithUsageErrors errorMessages = do
-    hPutStr stderr $ concatMap ("Usage error: " ++) errorMessages
-    helpMessage <- buildHelpMessage
-    hPutStr stderr helpMessage
-    exitFailure
-
-invalidNumberOfArguments :: IO a
-invalidNumberOfArguments = exitWithUsageErrors ["invalid number of arguments\n"]
-
-optionDescription :: [OptDescr (Options -> IO Options)]
-optionDescription =
-    [ Option "g" ["global"] (NoArg $ \opts -> return opts { env = Environment.AllUsersEnvironment }) "save under the registry key for all users"
-    , Option "h" ["help"] (NoArg exitWithHelpMessage) "show this message and exit"
-    ]
+setEnv :: Options -> IO ()
+setEnv options = Environment.saveToRegistryWithPrompt env (name options) (value options)
+  where
+    env | global options = Environment.AllUsersEnvironment
+        | otherwise      = Environment.CurrentUserEnvironment

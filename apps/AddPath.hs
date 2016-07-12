@@ -6,74 +6,49 @@
 
 module Main (main) where
 
-import Control.Monad (mapM_, when)
-import System.Console.GetOpt
-import System.Environment (getArgs, getProgName)
-import System.Exit (exitFailure, exitSuccess)
-import System.IO (hPutStr, stderr)
+import Control.Monad (when)
+
+import Options.Applicative
 
 import qualified Environment
 
-main :: IO ()
-main = do
-    rawArgs <- getArgs
-    case getOpt Permute optionDescription rawArgs of
-        (actions, args, []) -> do
-            options <- foldl (>>=) (return defaultOptions) actions
-            addPath args options
-        (_, _, errorMessages) -> exitWithUsageErrors errorMessages
+data Options = Options
+    { name :: String
+    , global :: Bool
+    , paths :: [String]
+    } deriving (Eq, Show)
 
-addPath :: [String] -> Options -> IO ()
-addPath paths options = do
-    missingPaths <- dropIncludedPaths paths
+options :: Parser Options
+options = Options
+    <$> nameOption
+    <*> globalOption
+    <*> pathArgs
+  where
+    nameOption = strOption $
+        long "name" <> short 'n' <> metavar "NAME" <> value "PATH" <>
+        help "Specify variable name ('PATH' by default)"
+    globalOption = switch $
+        long "global" <> short 'g' <>
+        help "Whether to add for all users"
+    pathArgs = many $ argument str $
+        metavar "PATH" <>
+        help "Directory path(s)"
+
+main :: IO ()
+main = execParser parser >>= addPath
+  where
+    parser = info (helper <*> options) $
+        fullDesc <> progDesc "Add directories to your PATH"
+
+addPath :: Options -> IO ()
+addPath options = do
+    missingPaths <- dropIncludedPaths $ paths options
     when (not $ null missingPaths) $ do
-        oldPath <- Environment.queryFromRegistry (env options) (name options)
-        Environment.saveToRegistryWithPrompt (env options) (name options) $ Environment.joinPaths $ missingPaths ++ [oldPath]
+        oldPath <- Environment.queryFromRegistry env $ name options
+        Environment.saveToRegistryWithPrompt env (name options) $ Environment.joinPaths $ missingPaths ++ [oldPath]
   where
     dropIncludedPaths paths = do
         currentPath <- Environment.getEnv $ name options
         return $ filter (flip notElem $ Environment.splitPaths currentPath) paths
-
-data Options = Options
-    { name :: String
-    , env :: Environment.RegistryBasedEnvironment
-    } deriving (Eq, Show)
-
-defaultOptions :: Options
-defaultOptions = Options
-    { name = "PATH"
-    , env = Environment.CurrentUserEnvironment
-    }
-
-buildHelpMessage :: IO String
-buildHelpMessage = do
-    header <- buildHeader
-    return $ usageInfo header optionDescription
-  where
-    buildHeader :: IO String
-    buildHeader = do
-        progName <- getProgName
-        return $ "Usage: " ++ progName ++ " [OPTIONS...] [PATH...]\nOptions:"
-
-exitWithHelpMessage :: a -> IO b
-exitWithHelpMessage _ = do
-    helpMessage <- buildHelpMessage
-    putStr helpMessage
-    exitSuccess
-
-exitWithUsageErrors :: [String] -> IO a
-exitWithUsageErrors errorMessages = do
-    hPutStr stderr $ concatMap ("Usage error: " ++) errorMessages
-    helpMessage <- buildHelpMessage
-    hPutStr stderr helpMessage
-    exitFailure
-
-invalidNumberOfArguments :: IO a
-invalidNumberOfArguments = exitWithUsageErrors ["invalid number of arguments\n"]
-
-optionDescription :: [OptDescr (Options -> IO Options)]
-optionDescription =
-    [ Option "n" ["name"] (ReqArg (\s opts -> return opts { name = s }) "NAME") "set the variable name ('PATH' by default)"
-    , Option "g" ["global"] (NoArg $ \opts -> return opts { env = Environment.AllUsersEnvironment }) "add the path for all users"
-    , Option "h" ["help"] (NoArg exitWithHelpMessage) "show this message and exit"
-    ]
+    env | global options = Environment.AllUsersEnvironment
+        | otherwise      = Environment.CurrentUserEnvironment
