@@ -6,7 +6,9 @@
 
 module Main (main) where
 
-import Control.Monad    (unless)
+import Control.Monad    (when)
+import Data.List        (union)
+import Data.Maybe       (fromMaybe)
 import System.Directory (createDirectoryIfMissing, getCurrentDirectory)
 import System.FilePath  (combine)
 
@@ -32,18 +34,17 @@ getPdbsDirectoryPath = do
 
 fixNtSymbolPath :: IO ()
 fixNtSymbolPath = do
-    let env = Environment.CurrentUser
-    val <- Environment.query env ntSymbolPath
-    let presentPaths = Environment.pathSplit val
-    remoteSymbolsPath <- getRemoteSymbolsDirectoryPath
-    pdbsPath <- getPdbsDirectoryPath
-    let requiredPaths = [pdbsPath, remoteSymbolsPath]
-    let missingPaths = filter (`notElem` presentPaths) requiredPaths
-    unless (null missingPaths) $ do
-        let newval = Environment.pathJoin $ presentPaths ++ missingPaths
-        Environment.engrave env ntSymbolPath newval
+    oldValue <- Environment.query env varName
+    let oldPaths = Environment.pathSplit $ fromMaybe "" oldValue
+    pathsToAdd <- addPaths
+    let newPaths = union oldPaths pathsToAdd
+    when (length oldPaths /= length newPaths) $ do
+        let newValue = Environment.pathJoin newPaths
+        Environment.engrave env varName newValue
   where
-    ntSymbolPath = "_NT_SYMBOL_PATH"
+    env = Environment.CurrentUser
+    varName = "_NT_SYMBOL_PATH"
+    addPaths = sequence [getRemoteSymbolsDirectoryPath, getPdbsDirectoryPath]
 
 main :: IO ()
 main = fixNtSymbolPath

@@ -83,9 +83,6 @@ exitCodeSuccess = 0
 exitCodeFileNotFound :: WinAPI.ErrCode
 exitCodeFileNotFound = 0x2
 
-exitCodeMoreData :: WinAPI.ErrCode
-exitCodeMoreData = 0xea
-
 raiseError :: String -> WinAPI.ErrCode -> IO a
 raiseError functionName ret
     | ret == exitCodeFileNotFound = raiseDoesNotExistError functionName
@@ -121,11 +118,9 @@ getString keyHandle valueName =
     alloca $ \dataSizePtr -> do
         poke dataSizePtr 0
         ret <- WinAPI.c_RegQueryValueEx keyPtr valueNamePtr WinAPI.nullPtr WinAPI.nullPtr WinAPI.nullPtr dataSizePtr
-        if ret == exitCodeSuccess
-            then return ""
-            else if ret /= exitCodeMoreData
-                then raiseError "RegQueryValueEx" ret
-                else getStringTerminated keyPtr valueNamePtr dataSizePtr
+        if ret /= exitCodeSuccess
+            then raiseError "RegQueryValueEx" ret
+            else getStringTerminated keyPtr valueNamePtr dataSizePtr
   where
     getStringTerminated keyPtr valueNamePtr dataSizePtr = do
         dataSize <- peek dataSizePtr

@@ -19,6 +19,7 @@ module Environment
 import Control.Monad   (when)
 import Data.List       (intercalate)
 import Data.List.Split (splitOn)
+import Data.Maybe      (fromJust, isJust)
 import System.IO.Error (catchIOError, isDoesNotExistError)
 
 import qualified Graphics.Win32.Window as WinAPI
@@ -64,12 +65,12 @@ notifyEnvUpdate =
 
     allWindows = WinAPI.castUINTPtrToPtr 0xffff
 
-query :: RegistryLocation -> Registry.ValueName -> IO Registry.ValueData
+query :: RegistryLocation -> Registry.ValueName -> IO (Maybe Registry.ValueData)
 query env name = do
     keyHandle <- openRegistryKey env
-    catchIOError (Registry.getString keyHandle name) emptyIfDoesNotExist
+    catchIOError (Registry.getString keyHandle name >>= return . Just) emptyIfDoesNotExist
   where
-    emptyIfDoesNotExist e = if isDoesNotExistError e then return "" else ioError e
+    emptyIfDoesNotExist e = if isDoesNotExistError e then return Nothing else ioError e
 
 engrave :: RegistryLocation -> Registry.ValueName -> Registry.ValueData -> IO ()
 engrave env name value = do
@@ -81,8 +82,12 @@ engraveWithPrompt :: RegistryLocation -> Registry.ValueName -> Registry.ValueDat
 engraveWithPrompt env name value = do
     putStrLn $ "Saving variable '" ++ name ++ "' to '" ++ registryKeyPath env ++ "'..."
     oldValue <- query env name
-    putStrLn $ "\tOld value: " ++ oldValue
-    putStrLn $ "\tNew value: " ++ value
+    if (isJust oldValue)
+        then do
+            putStrLn $ "\tOld value: " ++ fromJust oldValue
+            putStrLn $ "\tNew value: " ++ value
+        else do
+            putStrLn $ "\tValue: " ++ value
     agreed <- Utils.promptToContinue
     when agreed $ engrave env name value
 

@@ -7,30 +7,32 @@
 module Main (main) where
 
 import Control.Monad (when)
+import Data.List     (union)
+import Data.Maybe    (fromMaybe)
 
 import Options.Applicative
 
 import qualified Environment
 
 data Options = Options
-    { name :: String
-    , global :: Bool
-    , paths :: [String]
+    { optName :: String
+    , optGlobal :: Bool
+    , optPaths :: [String]
     } deriving (Eq, Show)
 
 options :: Parser Options
 options = Options
-    <$> nameOption
-    <*> globalOption
-    <*> pathArgs
+    <$> optNameDesc
+    <*> optGlobalDesc
+    <*> optPathsDesc
   where
-    nameOption = strOption $
+    optNameDesc = strOption $
         long "name" <> short 'n' <> metavar "NAME" <> value "PATH" <>
         help "Specify variable name ('PATH' by default)"
-    globalOption = switch $
+    optGlobalDesc = switch $
         long "global" <> short 'g' <>
         help "Whether to add for all users"
-    pathArgs = many $ argument str $
+    optPathsDesc = many $ argument str $
         metavar "PATH" <>
         help "Directory path(s)"
 
@@ -42,13 +44,14 @@ main = execParser parser >>= addPath
 
 addPath :: Options -> IO ()
 addPath options = do
-    missingPaths <- dropIncludedPaths $ paths options
-    when (not $ null missingPaths) $ do
-        oldPath <- Environment.query env $ name options
-        Environment.engraveWithPrompt env (name options) $ Environment.pathJoin $ missingPaths ++ [oldPath]
+    oldValue <- Environment.query env varName
+    let oldPaths = Environment.pathSplit $ fromMaybe "" oldValue
+    let newPaths = union oldPaths pathsToAdd
+    when (length oldPaths /= length newPaths) $ do
+        let newValue = Environment.pathJoin newPaths
+        Environment.engraveWithPrompt env varName newValue
   where
-    dropIncludedPaths paths = do
-        currentPath <- Environment.query env $ name options
-        return $ filter (flip notElem $ Environment.pathSplit currentPath) paths
-    env | global options = Environment.AllUsers
-        | otherwise      = Environment.CurrentUser
+    env | optGlobal options = Environment.AllUsers
+        | otherwise         = Environment.CurrentUser
+    varName = optName options
+    pathsToAdd = optPaths options

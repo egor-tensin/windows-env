@@ -11,19 +11,19 @@ import Options.Applicative
 import qualified Environment
 
 data Options = Options
-    { global :: Bool
-    , name :: String
+    { optGlobal :: Bool
+    , optName :: String
     } deriving (Eq, Show)
 
 options :: Parser Options
 options = Options
-    <$> globalOption
-    <*> nameArg
+    <$> optGlobalDesc
+    <*> optNameDesc
   where
-    globalOption = switch $
+    optGlobalDesc = switch $
         long "global" <> short 'g' <>
         help "Whether to unset for all users"
-    nameArg = argument str $
+    optNameDesc = argument str $
         metavar "NAME" <>
         help "Variable name"
 
@@ -34,7 +34,8 @@ main = execParser parser >>= unsetEnv
         fullDesc <> progDesc "Unset environment variables"
 
 unsetEnv :: Options -> IO ()
-unsetEnv options = Environment.wipeWithPrompt env $ name options
+unsetEnv options = Environment.wipeWithPrompt env varName
   where
-    env | global options = Environment.AllUsers
-        | otherwise      = Environment.CurrentUser
+    env | optGlobal options = Environment.AllUsers
+        | otherwise         = Environment.CurrentUser
+    varName = optName options

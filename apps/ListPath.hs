@@ -16,13 +16,13 @@ import Options.Applicative
 import qualified Environment
 
 data Options = Options
-    { name :: String
+    { optName :: String
     } deriving (Eq, Show)
 
 options :: Parser Options
-options = Options <$> nameOption
+options = Options <$> optNameDesc
   where
-    nameOption = strOption $
+    optNameDesc = strOption $
         long "name" <> short 'n' <> metavar "NAME" <> value "PATH" <>
         help "Specify variable name ('PATH' by default)"
 
@@ -32,14 +32,14 @@ main = execParser parser >>= listPath
     parser = info (helper <*> options) $
         fullDesc <> progDesc "List directories in your PATH"
 
-getEnv :: String -> IO String
-getEnv = liftM (fromMaybe "") . lookupEnv
-
 listPath :: Options -> IO ()
 listPath options = do
-    val <- getEnv $ name options
-    mapM_ printPath $ Environment.pathSplit val
+    oldValue <- getEnv varName
+    let oldPaths = Environment.pathSplit oldValue
+    mapM_ printPath oldPaths
   where
+    varName = optName options
+    getEnv = liftM (fromMaybe "") . lookupEnv
     printPath p = do
         exists <- doesDirectoryExist p
         putStrLn $ (if exists then "+" else "-") ++ " " ++ p
