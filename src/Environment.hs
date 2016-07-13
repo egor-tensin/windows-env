@@ -22,8 +22,9 @@ import Data.List.Split (splitOn)
 import Data.Maybe      (fromJust, isJust)
 import System.IO.Error (catchIOError, isDoesNotExistError)
 
-import qualified Graphics.Win32.Window as WinAPI
-import qualified System.Win32.Types    as WinAPI
+import qualified Graphics.Win32.GDI.Types as WinAPI
+import qualified Graphics.Win32.Message   as WinAPI
+import qualified System.Win32.Types       as WinAPI
 
 import qualified Registry
 import qualified Utils (promptToContinue)
@@ -52,18 +53,20 @@ openRegistryKey env = Registry.openSubKey (openRootKey env) (subKeyPath env)
 registryKeyPath :: RegistryLocation -> Registry.KeyPath
 registryKeyPath env = Registry.keyPathJoin [Registry.rootKeyPath $ rootKey env, subKeyPath env]
 
+foreign import ccall "SendNotifyMessageW"
+    c_SendNotifyMessage :: WinAPI.HWND -> WinAPI.WindowMessage -> WinAPI.WPARAM -> WinAPI.LPARAM -> IO WinAPI.LRESULT
+
 notifyEnvUpdate :: IO ()
 notifyEnvUpdate =
     WinAPI.withTString "Environment" $ \lparamPtr -> do
         let wparam = 0
         let lparam = fromIntegral $ WinAPI.castPtrToUINTPtr lparamPtr
-        _ <- WinAPI.sendMessage allWindows messageCode wparam lparam
+        _ <- c_SendNotifyMessage allWindows messageCode wparam lparam
         return ()
   where
-    wM_SETTINGCHANGE = 0x1A
-    messageCode = wM_SETTINGCHANGE
-
-    allWindows = WinAPI.castUINTPtrToPtr 0xffff
+    messageCode = WinAPI.wM_WININICHANGE
+    hWND_BROADCAST = WinAPI.castUINTPtrToPtr 0xffff
+    allWindows = hWND_BROADCAST
 
 query :: RegistryLocation -> Registry.ValueName -> IO (Maybe Registry.ValueData)
 query env name = do
