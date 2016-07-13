@@ -12,7 +12,7 @@ import qualified Environment
 
 data Options = Options
     { optGlobal :: Bool
-    , optName :: String
+    , optName   :: String
     } deriving (Eq, Show)
 
 options :: Parser Options

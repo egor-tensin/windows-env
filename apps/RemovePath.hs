@@ -15,9 +15,9 @@ import Options.Applicative
 import qualified Environment
 
 data Options = Options
-    { optName :: String
+    { optName   :: String
     , optGlobal :: Bool
-    , optPaths :: [String]
+    , optPaths  :: [String]
     } deriving (Eq, Show)
 
 options = Options
