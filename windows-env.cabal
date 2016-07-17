@@ -15,7 +15,7 @@ cabal-version:       >=1.10
 
 library
   hs-source-dirs:      src
-  exposed-modules:     Environment, Registry, Utils
+  exposed-modules:     Environment, Registry, WindowsUtils
   ghc-options:         -Wall -Werror
   build-depends:       base, split, Win32
   default-language:    Haskell2010

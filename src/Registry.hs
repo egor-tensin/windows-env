@@ -14,8 +14,8 @@ module Registry
     , openSubKey
 
     , RootKey(..)
-    , openRootKey
     , rootKeyPath
+    , openRootKey
 
     , ValueName
     , delValue

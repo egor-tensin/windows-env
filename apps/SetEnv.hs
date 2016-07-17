@@ -6,15 +6,19 @@
 
 module Main (main) where
 
+import Control.Monad (void)
+
 import Options.Applicative hiding (value)
 
 import qualified Environment
 
+import qualified Utils
+
 data Options = Options
     { optYes    :: Bool
     , optGlobal :: Bool
-    , optName   :: String
-    , optValue  :: String
+    , optName   :: Environment.VarName
+    , optValue  :: Environment.VarValue
     } deriving (Eq, Show)
 
 options :: Parser Options
@@ -44,17 +48,19 @@ main = execParser parser >>= setEnv
         fullDesc <> progDesc "Set environment variable"
 
 setEnv :: Options -> IO ()
-setEnv options = engrave varValue
+setEnv options = void $ prompt confirmationBanner $ Environment.engrave profile varName varValue
   where
+    confirmationBanner = Utils.engraveBanner profile varName Nothing varValue
+
     varName = optName options
     varValue = optValue options
 
     forAllUsers = optGlobal options
-    env = if forAllUsers
+    profile = if forAllUsers
         then Environment.AllUsers
         else Environment.CurrentUser
 
     skipPrompt = optYes options
-    engrave value = if skipPrompt
-        then Environment.engrave       env varName value
-        else Environment.engravePrompt env varName value >> return ()
+    prompt = if skipPrompt
+        then const Utils.withoutPrompt
+        else Utils.withPrompt

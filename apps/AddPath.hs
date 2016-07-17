@@ -6,19 +6,22 @@
 
 module Main (main) where
 
-import Control.Monad (when)
+import Control.Monad (void, when)
 import Data.List     (union)
 import Data.Maybe    (fromMaybe)
+import Text.Printf   (printf)
 
 import Options.Applicative
 
 import qualified Environment
 
+import qualified Utils
+
 data Options = Options
-    { optName   :: String
+    { optName   :: Environment.VarName
     , optYes    :: Bool
     , optGlobal :: Bool
-    , optPaths  :: [String]
+    , optPaths  :: [Environment.VarValue]
     } deriving (Eq, Show)
 
 options :: Parser Options
@@ -49,24 +52,23 @@ main = execParser parser >>= addPath
 
 addPath :: Options -> IO ()
 addPath options = do
-    oldValue <- query
+    oldValue <- Environment.query profile varName
     let oldPaths = Environment.pathSplit $ fromMaybe "" oldValue
     let newPaths = union oldPaths pathsToAdd
     when (length oldPaths /= length newPaths) $ do
         let newValue = Environment.pathJoin newPaths
-        engrave newValue
+        let promptBanner = Utils.engraveBanner profile varName oldValue newValue
+        void $ prompt promptBanner $ Environment.engrave profile varName newValue
   where
     varName = optName options
     pathsToAdd = optPaths options
 
     forAllUsers = optGlobal options
-    env = if forAllUsers
+    profile = if forAllUsers
         then Environment.AllUsers
         else Environment.CurrentUser
 
-    query = Environment.query env varName
-
     skipPrompt = optYes options
-    engrave value = if skipPrompt
-        then Environment.engrave       env varName value
-        else Environment.engravePrompt env varName value >> return ()
+    prompt = if skipPrompt
+        then const Utils.withoutPrompt
+        else Utils.withPrompt

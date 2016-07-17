@@ -5,116 +5,84 @@
 -}
 
 module Environment
-    ( RegistryLocation(..)
+    ( Profile(..)
+    , profileKeyPath
+
+    , VarName
+    , VarValue
     , query
     , engrave
-    , engravePrompt
     , wipe
-    , wipePrompt
 
     , pathJoin
     , pathSplit
     ) where
 
-import Control.Monad   (when)
 import Data.List       (intercalate)
 import Data.List.Split (splitOn)
-import Data.Maybe      (fromJust, isJust)
 import System.IO.Error (catchIOError, isDoesNotExistError)
 
-import qualified Graphics.Win32.GDI.Types as WinAPI
-import qualified Graphics.Win32.Message   as WinAPI
-import qualified System.Win32.Types       as WinAPI
-
 import qualified Registry
-import qualified Utils (promptToContinue)
+import           WindowsUtils (notifyEnvironmentUpdate)
 
-data RegistryLocation
-    = CurrentUser
-    | AllUsers
-    deriving (Eq, Show)
+data Profile = CurrentUser
+             | AllUsers
+             deriving (Eq, Show)
 
-subKeyPath :: RegistryLocation -> Registry.KeyPath
-subKeyPath CurrentUser =
+profileRootKey :: Profile -> Registry.RootKey
+profileRootKey CurrentUser = Registry.CurrentUser
+profileRootKey AllUsers    = Registry.LocalMachine
+
+profileRootKeyPath :: Profile -> Registry.KeyPath
+profileRootKeyPath = Registry.rootKeyPath . profileRootKey
+
+profileSubKeyPath :: Profile -> Registry.KeyPath
+profileSubKeyPath CurrentUser =
     Registry.keyPathFromString "Environment"
-subKeyPath AllUsers =
+profileSubKeyPath AllUsers =
     Registry.keyPathFromString "SYSTEM\\CurrentControlSet\\Control\\Session Manager\\Environment"
 
-rootKey :: RegistryLocation -> Registry.RootKey
-rootKey CurrentUser = Registry.CurrentUser
-rootKey AllUsers    = Registry.LocalMachine
+profileKeyPath :: Profile -> Registry.KeyPath
+profileKeyPath profile = Registry.keyPathJoin
+    [ profileRootKeyPath profile
+    , profileSubKeyPath  profile
+    ]
 
-openRootKey :: RegistryLocation -> Registry.KeyHandle
-openRootKey = Registry.openRootKey . rootKey
+openRootProfileKey :: Profile -> Registry.KeyHandle
+openRootProfileKey = Registry.openRootKey . profileRootKey
 
-openRegistryKey :: RegistryLocation -> IO Registry.KeyHandle
-openRegistryKey env = Registry.openSubKey (openRootKey env) (subKeyPath env)
+openProfileKey :: Profile -> IO Registry.KeyHandle
+openProfileKey profile = Registry.openSubKey (openRootProfileKey profile) (profileSubKeyPath profile)
 
-registryKeyPath :: RegistryLocation -> Registry.KeyPath
-registryKeyPath env = Registry.keyPathJoin [Registry.rootKeyPath $ rootKey env, subKeyPath env]
+type VarName  = Registry.ValueName
+type VarValue = Registry.ValueData
 
-foreign import ccall "SendNotifyMessageW"
-    c_SendNotifyMessage :: WinAPI.HWND -> WinAPI.WindowMessage -> WinAPI.WPARAM -> WinAPI.LPARAM -> IO WinAPI.LRESULT
-
-notifyEnvUpdate :: IO ()
-notifyEnvUpdate =
-    WinAPI.withTString "Environment" $ \lparamPtr -> do
-        let wparam = 0
-        let lparam = fromIntegral $ WinAPI.castPtrToUINTPtr lparamPtr
-        _ <- c_SendNotifyMessage allWindows messageCode wparam lparam
-        return ()
-  where
-    messageCode = WinAPI.wM_WININICHANGE
-    hWND_BROADCAST = WinAPI.castUINTPtrToPtr 0xffff
-    allWindows = hWND_BROADCAST
-
-query :: RegistryLocation -> Registry.ValueName -> IO (Maybe Registry.ValueData)
-query env name = do
-    keyHandle <- openRegistryKey env
+query :: Profile -> VarName -> IO (Maybe VarValue)
+query profile name = do
+    keyHandle <- openProfileKey profile
     catchIOError (Registry.getString keyHandle name >>= return . Just) emptyIfDoesNotExist
   where
     emptyIfDoesNotExist e = if isDoesNotExistError e then return Nothing else ioError e
 
-engrave :: RegistryLocation -> Registry.ValueName -> Registry.ValueData -> IO ()
-engrave env name value = do
-    keyHandle <- openRegistryKey env
+engrave :: Profile -> VarName -> VarValue -> IO ()
+engrave profile name value = do
+    keyHandle <- openProfileKey profile
     Registry.setString keyHandle name value
-    notifyEnvUpdate
+    notifyEnvironmentUpdate
 
-engravePrompt :: RegistryLocation -> Registry.ValueName -> Registry.ValueData -> IO Bool
-engravePrompt env name value = do
-    putStrLn $ "Saving variable '" ++ name ++ "' to '" ++ registryKeyPath env ++ "'..."
-    oldValue <- query env name
-    if (isJust oldValue)
-        then do
-            putStrLn $ "\tOld value: " ++ fromJust oldValue
-            putStrLn $ "\tNew value: " ++ value
-        else do
-            putStrLn $ "\tValue: " ++ value
-    agreed <- Utils.promptToContinue
-    when agreed $ engrave env name value
-    return agreed
-
-wipe :: RegistryLocation -> Registry.ValueName -> IO ()
-wipe env name = do
-    keyHandle <- openRegistryKey env
+wipe :: Profile -> VarName -> IO ()
+wipe profile name = do
+    keyHandle <- openProfileKey profile
     catchIOError (Registry.delValue keyHandle name) ignoreIfDoesNotExist
-    notifyEnvUpdate
+    notifyEnvironmentUpdate
   where
     ignoreIfDoesNotExist e = if isDoesNotExistError e then return () else ioError e
 
-wipePrompt :: RegistryLocation -> Registry.ValueName -> IO Bool
-wipePrompt env name = do
-    putStrLn $ "Deleting variable '" ++ name ++ "' from '" ++ registryKeyPath env ++ "'..."
-    agreed <- Utils.promptToContinue
-    when agreed $ wipe env name
-    return agreed
-
-pathSep :: String
+pathSep :: VarValue
 pathSep = ";"
 
-pathSplit :: String -> [String]
+pathSplit :: VarValue -> [VarValue]
 pathSplit = filter (not . null) . splitOn pathSep
 
-pathJoin :: [String] -> String
+pathJoin :: [VarValue] -> VarValue
 pathJoin = intercalate pathSep . filter (not . null)

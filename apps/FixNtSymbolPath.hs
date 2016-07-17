@@ -16,6 +16,8 @@ import Options.Applicative
 
 import qualified Environment
 
+import qualified Utils
+
 data Options = Options
     { optYes    :: Bool
     , optGlobal :: Bool
@@ -64,30 +66,29 @@ getLocalDirs = do
 
 fixNtSymbolPath :: Options -> IO ()
 fixNtSymbolPath options = do
-    oldValue <- query
+    oldValue <- Environment.query profile varName
     let oldPaths = Environment.pathSplit $ fromMaybe "" oldValue
     localDirs <- getLocalDirs
     let remoteDirs = toRemoteDirs localDirs
     let newPaths = union oldPaths $ dirPaths remoteDirs
     when (length oldPaths /= length newPaths) $ do
         let newValue = Environment.pathJoin newPaths
-        confirmed <- engrave newValue
+        let promptBanner = Utils.engraveBanner profile varName oldValue newValue
+        confirmed <- prompt promptBanner $ Environment.engrave profile varName newValue
         when confirmed $
             createDirs localDirs
   where
     varName = "_NT_SYMBOL_PATH"
 
     forAllUsers = optGlobal options
-    env = if forAllUsers
+    profile = if forAllUsers
         then Environment.AllUsers
         else Environment.CurrentUser
 
-    query = Environment.query env varName
-
     skipPrompt = optYes options
-    engrave value = if skipPrompt
-        then Environment.engrave       env varName value >> return True
-        else Environment.engravePrompt env varName value
+    prompt = if skipPrompt
+        then const Utils.withoutPrompt
+        else Utils.withPrompt
 
 main :: IO ()
 main = execParser parser >>= fixNtSymbolPath

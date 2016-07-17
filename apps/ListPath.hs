@@ -16,7 +16,7 @@ import Options.Applicative
 import qualified Environment
 
 data Options = Options
-    { optName :: String
+    { optName :: Environment.VarName
     } deriving (Eq, Show)
 
 options :: Parser Options

@@ -6,14 +6,18 @@
 
 module Main (main) where
 
+import Control.Monad (void)
+
 import Options.Applicative
 
 import qualified Environment
 
+import qualified Utils
+
 data Options = Options
     { optYes    :: Bool
     , optGlobal :: Bool
-    , optName   :: String
+    , optName   :: Environment.VarName
     } deriving (Eq, Show)
 
 options :: Parser Options
@@ -39,16 +43,18 @@ main = execParser parser >>= unsetEnv
         fullDesc <> progDesc "Unset environment variable"
 
 unsetEnv :: Options -> IO ()
-unsetEnv options = wipe
+unsetEnv options = void $ prompt confirmationBanner $ Environment.wipe profile varName
   where
+    confirmationBanner = Utils.wipeBanner profile varName
+
     varName = optName options
 
     forAllUsers = optGlobal options
-    env = if forAllUsers
+    profile = if forAllUsers
         then Environment.AllUsers
         else Environment.CurrentUser
 
     skipPrompt = optYes options
-    wipe = if skipPrompt
-        then Environment.wipe       env varName
-        else Environment.wipePrompt env varName >> return ()
+    prompt = if skipPrompt
+        then const Utils.withoutPrompt
+        else Utils.withPrompt

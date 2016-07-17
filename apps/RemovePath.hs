@@ -6,7 +6,7 @@
 
 module Main (main) where
 
-import Control.Monad (when)
+import Control.Monad (void, when)
 import Data.List     ((\\))
 import Data.Maybe    (fromJust, isJust)
 
@@ -14,11 +14,13 @@ import Options.Applicative
 
 import qualified Environment
 
+import qualified Utils
+
 data Options = Options
-    { optName   :: String
+    { optName   :: Environment.VarName
     , optYes    :: Bool
     , optGlobal :: Bool
-    , optPaths  :: [String]
+    , optPaths  :: [Environment.VarValue]
     } deriving (Eq, Show)
 
 options = Options
@@ -57,16 +59,17 @@ removePath options = do
 
     forAllUsers = optGlobal options
 
-    removePathFrom env = do
-        oldValue <- Environment.query env varName
+    removePathFrom profile = do
+        oldValue <- Environment.query profile varName
         when (isJust oldValue) $ do
             let oldPaths = Environment.pathSplit $ fromJust oldValue
             let newPaths = oldPaths \\ pathsToRemove
             when (length oldPaths /= length newPaths) $ do
                 let newValue = Environment.pathJoin newPaths
-                engrave env newValue
+                let promptBanner = Utils.engraveBanner profile varName oldValue newValue
+                void $ prompt promptBanner $ Environment.engrave profile varName newValue
 
     skipPrompt = optYes options
-    engrave env value = if skipPrompt
-        then Environment.engrave       env varName value
-        else Environment.engravePrompt env varName value >> return ()
+    prompt = if skipPrompt
+        then const Utils.withoutPrompt
+        else Utils.withPrompt
