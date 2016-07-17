@@ -1,8 +1,8 @@
-name:                wintmp
+name:                windows-env
 version:             0.1.0.0
-synopsis:            Windows "tmp" directory
+synopsis:            Windows environment variables
 description:         Please see README.md
-homepage:            https://github.com/egor-tensin/wintmp
+homepage:            https://github.com/egor-tensin/windows-env
 license:             MIT
 license-file:        LICENSE.txt
 author:              Egor Tensin
@@ -26,7 +26,7 @@ executable add_path
   ghc-options:         -threaded -rtsopts -with-rtsopts=-N
   build-depends:       base
                      , optparse-applicative
-                     , wintmp
+                     , windows-env
   default-language:    Haskell2010
 
 executable fix_nt_symbol_path
@@ -34,7 +34,7 @@ executable fix_nt_symbol_path
   main-is:             FixNtSymbolPath.hs
   ghc-options:         -threaded -rtsopts -with-rtsopts=-N
   build-depends:       base, directory, filepath
-                     , wintmp
+                     , windows-env
   default-language:    Haskell2010
 
 executable list_path
@@ -43,7 +43,7 @@ executable list_path
   ghc-options:         -threaded -rtsopts -with-rtsopts=-N
   build-depends:       base, directory
                      , optparse-applicative
-                     , wintmp
+                     , windows-env
   default-language:    Haskell2010
 
 executable remove_path
@@ -52,7 +52,7 @@ executable remove_path
   ghc-options:         -threaded -rtsopts -with-rtsopts=-N
   build-depends:       base
                      , optparse-applicative
-                     , wintmp
+                     , windows-env
   default-language:    Haskell2010
 
 executable set_env
@@ -61,7 +61,7 @@ executable set_env
   ghc-options:         -threaded -rtsopts -with-rtsopts=-N
   build-depends:       base
                      , optparse-applicative
-                     , wintmp
+                     , windows-env
   default-language:    Haskell2010
 
 executable unset_env
@@ -70,9 +70,9 @@ executable unset_env
   ghc-options:         -threaded -rtsopts -with-rtsopts=-N
   build-depends:       base
                      , optparse-applicative
-                     , wintmp
+                     , windows-env
   default-language:    Haskell2010
 
 source-repository head
   type:     git
-  location: https://github.com/egor-tensin/wintmp
+  location: https://github.com/egor-tensin/windows-env

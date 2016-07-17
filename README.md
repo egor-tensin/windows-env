@@ -1,5 +1,5 @@
-Windows "tmp" directory
-=======================
+Windows environment variables
+=============================
 
 A collection of scripts to manage my environmental variables, created mainly
 to:
