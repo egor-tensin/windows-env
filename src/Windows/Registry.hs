@@ -4,7 +4,7 @@
  - See LICENSE.txt for details.
 -}
 
-module Registry
+module Windows.Registry
     ( KeyPath
     , keyPathFromString
     , keyPathJoin

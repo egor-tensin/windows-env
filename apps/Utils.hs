@@ -18,7 +18,7 @@ import Data.Char     (toLower)
 import System.IO     (hFlush, stdout)
 import Text.Printf   (printf)
 
-import Environment   (Profile, profileKeyPath, VarName, VarValue)
+import Windows.Environment (Profile, profileKeyPath, VarName, VarValue)
 
 prompt :: String -> IO String
 prompt banner = do

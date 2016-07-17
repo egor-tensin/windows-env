@@ -12,9 +12,8 @@ import Data.Maybe       (fromMaybe)
 import System.Directory (createDirectoryIfMissing, getCurrentDirectory)
 import System.FilePath  (combine)
 
-import Options.Applicative
-
-import qualified Environment
+import           Options.Applicative
+import qualified Windows.Environment as Env
 
 import qualified Utils
 
@@ -66,15 +65,15 @@ getLocalDirs = do
 
 fixNtSymbolPath :: Options -> IO ()
 fixNtSymbolPath options = do
-    oldValue <- Environment.query profile varName
-    let oldPaths = Environment.pathSplit $ fromMaybe "" oldValue
+    oldValue <- Env.query profile varName
+    let oldPaths = Env.pathSplit $ fromMaybe "" oldValue
     localDirs <- getLocalDirs
     let remoteDirs = toRemoteDirs localDirs
     let newPaths = union oldPaths $ dirPaths remoteDirs
     when (length oldPaths /= length newPaths) $ do
-        let newValue = Environment.pathJoin newPaths
+        let newValue = Env.pathJoin newPaths
         let promptBanner = Utils.engraveBanner profile varName oldValue newValue
-        confirmed <- prompt promptBanner $ Environment.engrave profile varName newValue
+        confirmed <- prompt promptBanner $ Env.engrave profile varName newValue
         when confirmed $
             createDirs localDirs
   where
@@ -82,8 +81,8 @@ fixNtSymbolPath options = do
 
     forAllUsers = optGlobal options
     profile = if forAllUsers
-        then Environment.AllUsers
-        else Environment.CurrentUser
+        then Env.AllUsers
+        else Env.CurrentUser
 
     skipPrompt = optYes options
     prompt = if skipPrompt

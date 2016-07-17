@@ -10,17 +10,16 @@ import Control.Monad (void, when)
 import Data.List     ((\\))
 import Data.Maybe    (fromJust, isJust)
 
-import Options.Applicative
-
-import qualified Environment
+import           Options.Applicative
+import qualified Windows.Environment as Env
 
 import qualified Utils
 
 data Options = Options
-    { optName   :: Environment.VarName
+    { optName   :: Env.VarName
     , optYes    :: Bool
     , optGlobal :: Bool
-    , optPaths  :: [Environment.VarValue]
+    , optPaths  :: [Env.VarValue]
     } deriving (Eq, Show)
 
 options = Options
@@ -50,9 +49,9 @@ main = execParser parser >>= removePath
 
 removePath :: Options -> IO ()
 removePath options = do
-    removePathFrom Environment.CurrentUser
+    removePathFrom Env.CurrentUser
     when forAllUsers $ do
-        removePathFrom Environment.AllUsers
+        removePathFrom Env.AllUsers
   where
     varName = optName options
     pathsToRemove = optPaths options
@@ -60,14 +59,14 @@ removePath options = do
     forAllUsers = optGlobal options
 
     removePathFrom profile = do
-        oldValue <- Environment.query profile varName
+        oldValue <- Env.query profile varName
         when (isJust oldValue) $ do
-            let oldPaths = Environment.pathSplit $ fromJust oldValue
+            let oldPaths = Env.pathSplit $ fromJust oldValue
             let newPaths = oldPaths \\ pathsToRemove
             when (length oldPaths /= length newPaths) $ do
-                let newValue = Environment.pathJoin newPaths
+                let newValue = Env.pathJoin newPaths
                 let promptBanner = Utils.engraveBanner profile varName oldValue newValue
-                void $ prompt promptBanner $ Environment.engrave profile varName newValue
+                void $ prompt promptBanner $ Env.engrave profile varName newValue
 
     skipPrompt = optYes options
     prompt = if skipPrompt

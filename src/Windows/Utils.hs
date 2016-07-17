@@ -4,7 +4,7 @@
  - See LICENSE.txt for details.
 -}
 
-module WindowsUtils
+module Windows.Utils
     ( notifyEnvironmentUpdate
     ) where
 

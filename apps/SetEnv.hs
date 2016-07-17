@@ -8,17 +8,16 @@ module Main (main) where
 
 import Control.Monad (void)
 
-import Options.Applicative hiding (value)
-
-import qualified Environment
+import           Options.Applicative
+import qualified Windows.Environment as Env
 
 import qualified Utils
 
 data Options = Options
     { optYes    :: Bool
     , optGlobal :: Bool
-    , optName   :: Environment.VarName
-    , optValue  :: Environment.VarValue
+    , optName   :: Env.VarName
+    , optValue  :: Env.VarValue
     } deriving (Eq, Show)
 
 options :: Parser Options
@@ -48,7 +47,7 @@ main = execParser parser >>= setEnv
         fullDesc <> progDesc "Set environment variable"
 
 setEnv :: Options -> IO ()
-setEnv options = void $ prompt confirmationBanner $ Environment.engrave profile varName varValue
+setEnv options = void $ prompt confirmationBanner $ Env.engrave profile varName varValue
   where
     confirmationBanner = Utils.engraveBanner profile varName Nothing varValue
 
@@ -57,8 +56,8 @@ setEnv options = void $ prompt confirmationBanner $ Environment.engrave profile 
 
     forAllUsers = optGlobal options
     profile = if forAllUsers
-        then Environment.AllUsers
-        else Environment.CurrentUser
+        then Env.AllUsers
+        else Env.CurrentUser
 
     skipPrompt = optYes options
     prompt = if skipPrompt

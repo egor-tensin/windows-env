@@ -11,17 +11,16 @@ import Data.List     (union)
 import Data.Maybe    (fromMaybe)
 import Text.Printf   (printf)
 
-import Options.Applicative
-
-import qualified Environment
+import           Options.Applicative
+import qualified Windows.Environment as Env
 
 import qualified Utils
 
 data Options = Options
-    { optName   :: Environment.VarName
+    { optName   :: Env.VarName
     , optYes    :: Bool
     , optGlobal :: Bool
-    , optPaths  :: [Environment.VarValue]
+    , optPaths  :: [Env.VarValue]
     } deriving (Eq, Show)
 
 options :: Parser Options
@@ -52,21 +51,21 @@ main = execParser parser >>= addPath
 
 addPath :: Options -> IO ()
 addPath options = do
-    oldValue <- Environment.query profile varName
-    let oldPaths = Environment.pathSplit $ fromMaybe "" oldValue
+    oldValue <- Env.query profile varName
+    let oldPaths = Env.pathSplit $ fromMaybe "" oldValue
     let newPaths = union oldPaths pathsToAdd
     when (length oldPaths /= length newPaths) $ do
-        let newValue = Environment.pathJoin newPaths
+        let newValue = Env.pathJoin newPaths
         let promptBanner = Utils.engraveBanner profile varName oldValue newValue
-        void $ prompt promptBanner $ Environment.engrave profile varName newValue
+        void $ prompt promptBanner $ Env.engrave profile varName newValue
   where
     varName = optName options
     pathsToAdd = optPaths options
 
     forAllUsers = optGlobal options
     profile = if forAllUsers
-        then Environment.AllUsers
-        else Environment.CurrentUser
+        then Env.AllUsers
+        else Env.CurrentUser
 
     skipPrompt = optYes options
     prompt = if skipPrompt

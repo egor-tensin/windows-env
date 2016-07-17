@@ -4,7 +4,7 @@
  - See LICENSE.txt for details.
 -}
 
-module Environment
+module Windows.Environment
     ( Profile(..)
     , profileKeyPath
 
@@ -22,8 +22,8 @@ import Data.List       (intercalate)
 import Data.List.Split (splitOn)
 import System.IO.Error (catchIOError, isDoesNotExistError)
 
-import qualified Registry
-import           WindowsUtils (notifyEnvironmentUpdate)
+import qualified Windows.Registry as Registry
+import           Windows.Utils (notifyEnvironmentUpdate)
 
 data Profile = CurrentUser
              | AllUsers

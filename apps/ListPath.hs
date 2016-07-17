@@ -11,12 +11,11 @@ import Data.Maybe         (fromMaybe)
 import System.Directory   (doesDirectoryExist)
 import System.Environment (lookupEnv)
 
-import Options.Applicative
-
-import qualified Environment
+import           Options.Applicative
+import qualified Windows.Environment as Env
 
 data Options = Options
-    { optName :: Environment.VarName
+    { optName :: Env.VarName
     } deriving (Eq, Show)
 
 options :: Parser Options
@@ -35,7 +34,7 @@ main = execParser parser >>= listPath
 listPath :: Options -> IO ()
 listPath options = do
     oldValue <- getEnv varName
-    let oldPaths = Environment.pathSplit oldValue
+    let oldPaths = Env.pathSplit oldValue
     mapM_ printPath oldPaths
   where
     varName = optName options
