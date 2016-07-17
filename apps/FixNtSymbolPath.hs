@@ -38,8 +38,16 @@ data Dirs = Dirs
     , symbolsDir :: String
     } deriving (Eq, Show)
 
-getRemoteDirs :: Dirs -> Dirs
-getRemoteDirs localDirs = localDirs
+dirPaths :: Dirs -> [String]
+dirPaths dirs = [ pdbsDir dirs
+                , symbolsDir dirs
+                ]
+
+createDirs :: Dirs -> IO ()
+createDirs = mapM_ (createDirectoryIfMissing True) . dirPaths
+
+toRemoteDirs :: Dirs -> Dirs
+toRemoteDirs localDirs = localDirs
     { symbolsDir = remoteSymbolsDir $ symbolsDir localDirs
     }
   where
@@ -59,13 +67,13 @@ fixNtSymbolPath options = do
     oldValue <- query
     let oldPaths = Environment.pathSplit $ fromMaybe "" oldValue
     localDirs <- getLocalDirs
-    let remoteDirs = getRemoteDirs localDirs
-    let newPaths = union oldPaths $ paths remoteDirs
+    let remoteDirs = toRemoteDirs localDirs
+    let newPaths = union oldPaths $ dirPaths remoteDirs
     when (length oldPaths /= length newPaths) $ do
         let newValue = Environment.pathJoin newPaths
         confirmed <- engrave newValue
         when confirmed $
-            createLocalDirs localDirs
+            createDirs localDirs
   where
     varName = "_NT_SYMBOL_PATH"
 
@@ -80,10 +88,6 @@ fixNtSymbolPath options = do
     engrave value = if skipPrompt
         then Environment.engrave       env varName value >> return True
         else Environment.engravePrompt env varName value
-
-    paths dirs = [pdbsDir dirs, symbolsDir dirs]
-
-    createLocalDirs = mapM_ (createDirectoryIfMissing True) . paths
 
 main :: IO ()
 main = execParser parser >>= fixNtSymbolPath
