@@ -39,7 +39,7 @@ main = execParser parser >>= unsetEnv
         fullDesc <> progDesc "Unset environment variable"
 
 unsetEnv :: Options -> IO ()
-unsetEnv options = wipe env varName
+unsetEnv options = wipe
   where
     varName = optName options
 
@@ -48,6 +48,6 @@ unsetEnv options = wipe env varName
         | otherwise   = Environment.CurrentUser
 
     skipPrompt = optYes options
-    wipe
-        | skipPrompt = Environment.wipe
-        | otherwise  = Environment.wipeWithPrompt
+    wipe = if skipPrompt
+        then Environment.wipe       env varName
+        else Environment.wipePrompt env varName >> return ()

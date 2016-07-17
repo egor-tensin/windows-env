@@ -64,9 +64,9 @@ removePath options = do
             let newPaths = oldPaths \\ pathsToRemove
             when (length oldPaths /= length newPaths) $ do
                 let newValue = Environment.pathJoin newPaths
-                engrave env varName newValue
+                engrave env newValue
 
     skipPrompt = optYes options
-    engrave
-        | skipPrompt = Environment.engrave
-        | otherwise  = Environment.engraveWithPrompt
+    engrave env value = if skipPrompt
+        then Environment.engrave       env varName value
+        else Environment.engravePrompt env varName value >> return ()

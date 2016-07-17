@@ -8,9 +8,9 @@ module Environment
     ( RegistryLocation(..)
     , query
     , engrave
-    , engraveWithPrompt
+    , engravePrompt
     , wipe
-    , wipeWithPrompt
+    , wipePrompt
 
     , pathJoin
     , pathSplit
@@ -81,8 +81,8 @@ engrave env name value = do
     Registry.setString keyHandle name value
     notifyEnvUpdate
 
-engraveWithPrompt :: RegistryLocation -> Registry.ValueName -> Registry.ValueData -> IO ()
-engraveWithPrompt env name value = do
+engravePrompt :: RegistryLocation -> Registry.ValueName -> Registry.ValueData -> IO Bool
+engravePrompt env name value = do
     putStrLn $ "Saving variable '" ++ name ++ "' to '" ++ registryKeyPath env ++ "'..."
     oldValue <- query env name
     if (isJust oldValue)
@@ -93,6 +93,7 @@ engraveWithPrompt env name value = do
             putStrLn $ "\tValue: " ++ value
     agreed <- Utils.promptToContinue
     when agreed $ engrave env name value
+    return agreed
 
 wipe :: RegistryLocation -> Registry.ValueName -> IO ()
 wipe env name = do
@@ -102,11 +103,12 @@ wipe env name = do
   where
     ignoreIfDoesNotExist e = if isDoesNotExistError e then return () else ioError e
 
-wipeWithPrompt :: RegistryLocation -> Registry.ValueName -> IO ()
-wipeWithPrompt env name = do
+wipePrompt :: RegistryLocation -> Registry.ValueName -> IO Bool
+wipePrompt env name = do
     putStrLn $ "Deleting variable '" ++ name ++ "' from '" ++ registryKeyPath env ++ "'..."
     agreed <- Utils.promptToContinue
     when agreed $ wipe env name
+    return agreed
 
 pathSep :: String
 pathSep = ";"

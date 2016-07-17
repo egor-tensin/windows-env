@@ -49,12 +49,12 @@ main = execParser parser >>= addPath
 
 addPath :: Options -> IO ()
 addPath options = do
-    oldValue <- Environment.query env varName
+    oldValue <- query
     let oldPaths = Environment.pathSplit $ fromMaybe "" oldValue
     let newPaths = union oldPaths pathsToAdd
     when (length oldPaths /= length newPaths) $ do
         let newValue = Environment.pathJoin newPaths
-        engrave env varName newValue
+        engrave newValue
   where
     varName = optName options
     pathsToAdd = optPaths options
@@ -63,7 +63,9 @@ addPath options = do
     env | forAllUsers = Environment.AllUsers
         | otherwise   = Environment.CurrentUser
 
+    query = Environment.query env varName
+
     skipPrompt = optYes options
-    engrave
-        | skipPrompt = Environment.engrave
-        | otherwise  = Environment.engraveWithPrompt
+    engrave value = if skipPrompt
+        then Environment.engrave       env varName value
+        else Environment.engravePrompt env varName value >> return ()

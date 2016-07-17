@@ -44,7 +44,7 @@ main = execParser parser >>= setEnv
         fullDesc <> progDesc "Set environment variable"
 
 setEnv :: Options -> IO ()
-setEnv options = engrave env varName varValue
+setEnv options = engrave varValue
   where
     varName = optName options
     varValue = optValue options
@@ -54,6 +54,6 @@ setEnv options = engrave env varName varValue
         | otherwise   = Environment.CurrentUser
 
     skipPrompt = optYes options
-    engrave
-        | skipPrompt = Environment.engrave
-        | otherwise  = Environment.engraveWithPrompt
+    engrave value = if skipPrompt
+        then Environment.engrave       env varName value
+        else Environment.engravePrompt env varName value >> return ()

@@ -33,45 +33,56 @@ options = Options
         long "global" <> short 'g' <>
         help "Set up for all users"
 
-getRemoteSymbolsDirectoryPath :: IO String
-getRemoteSymbolsDirectoryPath = do
-    localPath <- getLocalPath
-    createDirectoryIfMissing True localPath
-    return $ "SRV*" ++ localPath ++ "*" ++ remotePath
-  where
-    getLocalPath = do
-        cwd <- getCurrentDirectory
-        return $ combine cwd "symbols"
-    remotePath = "http://msdl.microsoft.com/download/symbols"
+data Dirs = Dirs
+    { pdbsDir    :: String
+    , symbolsDir :: String
+    } deriving (Eq, Show)
 
-getPdbsDirectoryPath :: IO String
-getPdbsDirectoryPath = do
+getRemoteDirs :: Dirs -> Dirs
+getRemoteDirs localDirs = localDirs
+    { symbolsDir = remoteSymbolsDir $ symbolsDir localDirs
+    }
+  where
+    remoteSymbolsDir localDir = "SRV*" ++ localDir ++ "*" ++ remoteSymbolsUrl
+    remoteSymbolsUrl = "http://msdl.microsoft.com/download/symbols"
+
+getLocalDirs :: IO Dirs
+getLocalDirs = do
     cwd <- getCurrentDirectory
-    let path = combine cwd "pdbs"
-    createDirectoryIfMissing True path
-    return path
+    return Dirs
+        { pdbsDir    = combine cwd "pdbs"
+        , symbolsDir = combine cwd "symbols"
+        }
 
 fixNtSymbolPath :: Options -> IO ()
 fixNtSymbolPath options = do
-    oldValue <- Environment.query env varName
+    oldValue <- query
     let oldPaths = Environment.pathSplit $ fromMaybe "" oldValue
-    pathsToAdd <- addPaths
-    let newPaths = union oldPaths pathsToAdd
+    localDirs <- getLocalDirs
+    let remoteDirs = getRemoteDirs localDirs
+    let newPaths = union oldPaths $ paths remoteDirs
     when (length oldPaths /= length newPaths) $ do
         let newValue = Environment.pathJoin newPaths
-        engrave env varName newValue
+        confirmed <- engrave newValue
+        when confirmed $
+            createLocalDirs localDirs
   where
     varName = "_NT_SYMBOL_PATH"
-    addPaths = sequence [getRemoteSymbolsDirectoryPath, getPdbsDirectoryPath]
 
     forAllUsers = optGlobal options
     env | forAllUsers = Environment.AllUsers
         | otherwise   = Environment.CurrentUser
 
+    query = Environment.query env varName
+
     skipPrompt = optYes options
-    engrave
-        | skipPrompt = Environment.engrave
-        | otherwise  = Environment.engraveWithPrompt
+    engrave value = if skipPrompt
+        then Environment.engrave       env varName value >> return True
+        else Environment.engravePrompt env varName value
+
+    paths dirs = [pdbsDir dirs, symbolsDir dirs]
+
+    createLocalDirs = mapM_ (createDirectoryIfMissing True) . paths
 
 main :: IO ()
 main = execParser parser >>= fixNtSymbolPath
