@@ -12,7 +12,26 @@ import Data.Maybe       (fromMaybe)
 import System.Directory (createDirectoryIfMissing, getCurrentDirectory)
 import System.FilePath  (combine)
 
+import Options.Applicative
+
 import qualified Environment
+
+data Options = Options
+    { optYes    :: Bool
+    , optGlobal :: Bool
+    } deriving (Eq, Show)
+
+options :: Parser Options
+options = Options
+    <$> optYesDesc
+    <*> optGlobalDesc
+  where
+    optYesDesc = switch $
+        long "yes" <> short 'y' <>
+        help "Skip confirmation prompt"
+    optGlobalDesc = switch $
+        long "global" <> short 'g' <>
+        help "Set up for all users"
 
 getRemoteSymbolsDirectoryPath :: IO String
 getRemoteSymbolsDirectoryPath = do
@@ -32,19 +51,30 @@ getPdbsDirectoryPath = do
     createDirectoryIfMissing True path
     return path
 
-fixNtSymbolPath :: IO ()
-fixNtSymbolPath = do
+fixNtSymbolPath :: Options -> IO ()
+fixNtSymbolPath options = do
     oldValue <- Environment.query env varName
     let oldPaths = Environment.pathSplit $ fromMaybe "" oldValue
     pathsToAdd <- addPaths
     let newPaths = union oldPaths pathsToAdd
     when (length oldPaths /= length newPaths) $ do
         let newValue = Environment.pathJoin newPaths
-        Environment.engrave env varName newValue
+        engrave env varName newValue
   where
-    env = Environment.CurrentUser
     varName = "_NT_SYMBOL_PATH"
     addPaths = sequence [getRemoteSymbolsDirectoryPath, getPdbsDirectoryPath]
 
+    forAllUsers = optGlobal options
+    env | forAllUsers = Environment.AllUsers
+        | otherwise   = Environment.CurrentUser
+
+    skipPrompt = optYes options
+    engrave
+        | skipPrompt = Environment.engrave
+        | otherwise  = Environment.engraveWithPrompt
+
 main :: IO ()
-main = fixNtSymbolPath
+main = execParser parser >>= fixNtSymbolPath
+  where
+    parser = info (helper <*> options) $
+        fullDesc <> progDesc "Set up your _NT_SYMBOL_PATH"

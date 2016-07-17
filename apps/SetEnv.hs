@@ -11,20 +11,25 @@ import Options.Applicative hiding (value)
 import qualified Environment
 
 data Options = Options
-    { optGlobal :: Bool
+    { optYes    :: Bool
+    , optGlobal :: Bool
     , optName   :: String
     , optValue  :: String
     } deriving (Eq, Show)
 
 options :: Parser Options
 options = Options
-    <$> optGlobalDesc
+    <$> optYesDesc
+    <*> optGlobalDesc
     <*> optNameDesc
     <*> optValueDesc
   where
+    optYesDesc = switch $
+        long "yes" <> short 'y' <>
+        help "Skip confirmation prompt"
     optGlobalDesc = switch $
         long "global" <> short 'g' <>
-        help "Whether to set for all users"
+        help "Set for all users"
     optNameDesc = argument str $
         metavar "NAME" <>
         help "Variable name"
@@ -36,12 +41,19 @@ main :: IO ()
 main = execParser parser >>= setEnv
   where
     parser = info (helper <*> options) $
-        fullDesc <> progDesc "Set environment variables"
+        fullDesc <> progDesc "Set environment variable"
 
 setEnv :: Options -> IO ()
-setEnv options = Environment.engraveWithPrompt env varName varValue
+setEnv options = engrave env varName varValue
   where
-    env | optGlobal options = Environment.AllUsers
-        | otherwise         = Environment.CurrentUser
     varName = optName options
     varValue = optValue options
+
+    forAllUsers = optGlobal options
+    env | forAllUsers = Environment.AllUsers
+        | otherwise   = Environment.CurrentUser
+
+    skipPrompt = optYes options
+    engrave
+        | skipPrompt = Environment.engrave
+        | otherwise  = Environment.engraveWithPrompt

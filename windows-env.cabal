@@ -34,6 +34,7 @@ executable fix_nt_symbol_path
   main-is:             FixNtSymbolPath.hs
   ghc-options:         -threaded -rtsopts -with-rtsopts=-N
   build-depends:       base, directory, filepath
+                     , optparse-applicative
                      , windows-env
   default-language:    Haskell2010
 

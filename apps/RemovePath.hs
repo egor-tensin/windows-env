@@ -16,24 +16,29 @@ import qualified Environment
 
 data Options = Options
     { optName   :: String
+    , optYes    :: Bool
     , optGlobal :: Bool
     , optPaths  :: [String]
     } deriving (Eq, Show)
 
 options = Options
     <$> optNameDesc
+    <*> optYesDesc
     <*> optGlobalDesc
     <*> optPathsDesc
   where
     optNameDesc = strOption $
         long "name" <> short 'n' <> metavar "NAME" <> value "PATH" <>
-        help "Specify variable name ('PATH' by default)"
+        help "Variable name ('PATH' by default)"
+    optYesDesc = switch $
+        long "yes" <> short 'y' <>
+        help "Skip confirmation prompt"
     optGlobalDesc = switch $
         long "global" <> short 'g' <>
-        help "Whether to remove for all users"
+        help "Remove for all users"
     optPathsDesc = many $ argument str $
         metavar "PATH" <>
-        help "Directory path(s)"
+        help "Directories to remove"
 
 main :: IO ()
 main = execParser parser >>= removePath
@@ -43,18 +48,25 @@ main = execParser parser >>= removePath
 
 removePath :: Options -> IO ()
 removePath options = do
-    removePathFrom Environment.CurrentUser options
-    when (optGlobal options) $ do
-        removePathFrom Environment.AllUsers options
+    removePathFrom Environment.CurrentUser
+    when forAllUsers $ do
+        removePathFrom Environment.AllUsers
   where
     varName = optName options
     pathsToRemove = optPaths options
 
-    removePathFrom env options = do
+    forAllUsers = optGlobal options
+
+    removePathFrom env = do
         oldValue <- Environment.query env varName
         when (isJust oldValue) $ do
             let oldPaths = Environment.pathSplit $ fromJust oldValue
             let newPaths = oldPaths \\ pathsToRemove
             when (length oldPaths /= length newPaths) $ do
                 let newValue = Environment.pathJoin newPaths
-                Environment.engraveWithPrompt env varName newValue
+                engrave env varName newValue
+
+    skipPrompt = optYes options
+    engrave
+        | skipPrompt = Environment.engrave
+        | otherwise  = Environment.engraveWithPrompt

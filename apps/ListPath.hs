@@ -24,7 +24,7 @@ options = Options <$> optNameDesc
   where
     optNameDesc = strOption $
         long "name" <> short 'n' <> metavar "NAME" <> value "PATH" <>
-        help "Specify variable name ('PATH' by default)"
+        help "Variable name ('PATH' by default)"
 
 main :: IO ()
 main = execParser parser >>= listPath
@@ -40,6 +40,7 @@ listPath options = do
   where
     varName = optName options
     getEnv = liftM (fromMaybe "") . lookupEnv
+
     printPath p = do
         exists <- doesDirectoryExist p
         putStrLn $ (if exists then "+" else "-") ++ " " ++ p

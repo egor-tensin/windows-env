@@ -16,6 +16,7 @@ import qualified Environment
 
 data Options = Options
     { optName   :: String
+    , optYes    :: Bool
     , optGlobal :: Bool
     , optPaths  :: [String]
     } deriving (Eq, Show)
@@ -23,18 +24,22 @@ data Options = Options
 options :: Parser Options
 options = Options
     <$> optNameDesc
+    <*> optYesDesc
     <*> optGlobalDesc
     <*> optPathsDesc
   where
     optNameDesc = strOption $
         long "name" <> short 'n' <> metavar "NAME" <> value "PATH" <>
-        help "Specify variable name ('PATH' by default)"
+        help "Variable name ('PATH' by default)"
+    optYesDesc = switch $
+        long "yes" <> short 'y' <>
+        help "Skip confirmation prompt"
     optGlobalDesc = switch $
         long "global" <> short 'g' <>
-        help "Whether to add for all users"
+        help "Add for all users"
     optPathsDesc = many $ argument str $
         metavar "PATH" <>
-        help "Directory path(s)"
+        help "Directories to add"
 
 main :: IO ()
 main = execParser parser >>= addPath
@@ -49,9 +54,16 @@ addPath options = do
     let newPaths = union oldPaths pathsToAdd
     when (length oldPaths /= length newPaths) $ do
         let newValue = Environment.pathJoin newPaths
-        Environment.engraveWithPrompt env varName newValue
+        engrave env varName newValue
   where
-    env | optGlobal options = Environment.AllUsers
-        | otherwise         = Environment.CurrentUser
     varName = optName options
     pathsToAdd = optPaths options
+
+    forAllUsers = optGlobal options
+    env | forAllUsers = Environment.AllUsers
+        | otherwise   = Environment.CurrentUser
+
+    skipPrompt = optYes options
+    engrave
+        | skipPrompt = Environment.engrave
+        | otherwise  = Environment.engraveWithPrompt
