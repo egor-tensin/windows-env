@@ -60,8 +60,9 @@ addPath options = do
     pathsToAdd = optPaths options
 
     forAllUsers = optGlobal options
-    env | forAllUsers = Environment.AllUsers
-        | otherwise   = Environment.CurrentUser
+    env = if forAllUsers
+        then Environment.AllUsers
+        else Environment.CurrentUser
 
     query = Environment.query env varName
 

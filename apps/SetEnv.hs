@@ -50,8 +50,9 @@ setEnv options = engrave varValue
     varValue = optValue options
 
     forAllUsers = optGlobal options
-    env | forAllUsers = Environment.AllUsers
-        | otherwise   = Environment.CurrentUser
+    env = if forAllUsers
+        then Environment.AllUsers
+        else Environment.CurrentUser
 
     skipPrompt = optYes options
     engrave value = if skipPrompt

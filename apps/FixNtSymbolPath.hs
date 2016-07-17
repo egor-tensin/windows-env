@@ -70,8 +70,9 @@ fixNtSymbolPath options = do
     varName = "_NT_SYMBOL_PATH"
 
     forAllUsers = optGlobal options
-    env | forAllUsers = Environment.AllUsers
-        | otherwise   = Environment.CurrentUser
+    env = if forAllUsers
+        then Environment.AllUsers
+        else Environment.CurrentUser
 
     query = Environment.query env varName
 
