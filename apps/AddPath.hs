@@ -9,12 +9,12 @@ module Main (main) where
 import Control.Monad (void, when)
 import Data.List     (union)
 import Data.Maybe    (fromMaybe)
-import Text.Printf   (printf)
 
 import           Options.Applicative
 import qualified Windows.Environment as Env
 
-import qualified Utils
+import Banner
+import Prompt
 
 data Options = Options
     { optName   :: Env.VarName
@@ -56,18 +56,18 @@ addPath options = do
     let newPaths = union oldPaths pathsToAdd
     when (length oldPaths /= length newPaths) $ do
         let newValue = Env.pathJoin newPaths
-        let promptBanner = Utils.engraveBanner profile varName oldValue newValue
-        void $ prompt promptBanner $ Env.engrave profile varName newValue
+        let banner = engraveBanner profile varName oldValue newValue
+        void $ prompt banner $ Env.engrave profile varName newValue
   where
     varName = optName options
     pathsToAdd = optPaths options
 
     forAllUsers = optGlobal options
-    profile = if forAllUsers
-        then Env.AllUsers
-        else Env.CurrentUser
+    profile
+        | forAllUsers = Env.AllUsers
+        | otherwise   = Env.CurrentUser
 
     skipPrompt = optYes options
-    prompt = if skipPrompt
-        then const Utils.withoutPrompt
-        else Utils.withPrompt
+    prompt
+        | skipPrompt = const withoutPrompt
+        | otherwise  = withPrompt

@@ -11,7 +11,8 @@ import Control.Monad (void)
 import           Options.Applicative
 import qualified Windows.Environment as Env
 
-import qualified Utils
+import Banner
+import Prompt
 
 data Options = Options
     { optYes    :: Bool
@@ -47,19 +48,19 @@ main = execParser parser >>= setEnv
         fullDesc <> progDesc "Set environment variable"
 
 setEnv :: Options -> IO ()
-setEnv options = void $ prompt confirmationBanner $ Env.engrave profile varName varValue
+setEnv options = void $ prompt banner $ Env.engrave profile varName varValue
   where
-    confirmationBanner = Utils.engraveBanner profile varName Nothing varValue
+    banner = engraveBanner profile varName Nothing varValue
 
     varName = optName options
     varValue = optValue options
 
     forAllUsers = optGlobal options
-    profile = if forAllUsers
-        then Env.AllUsers
-        else Env.CurrentUser
+    profile
+        | forAllUsers = Env.AllUsers
+        | otherwise   = Env.CurrentUser
 
     skipPrompt = optYes options
-    prompt = if skipPrompt
-        then const Utils.withoutPrompt
-        else Utils.withPrompt
+    prompt
+        | skipPrompt = const withoutPrompt
+        | otherwise  = withPrompt

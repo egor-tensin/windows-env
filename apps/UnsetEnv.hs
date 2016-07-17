@@ -11,7 +11,8 @@ import Control.Monad (void)
 import           Options.Applicative
 import qualified Windows.Environment as Env
 
-import qualified Utils
+import Banner
+import Prompt
 
 data Options = Options
     { optYes    :: Bool
@@ -42,18 +43,18 @@ main = execParser parser >>= unsetEnv
         fullDesc <> progDesc "Unset environment variable"
 
 unsetEnv :: Options -> IO ()
-unsetEnv options = void $ prompt confirmationBanner $ Env.wipe profile varName
+unsetEnv options = void $ prompt banner $ Env.wipe profile varName
   where
-    confirmationBanner = Utils.wipeBanner profile varName
+    banner = wipeBanner profile varName
 
     varName = optName options
 
     forAllUsers = optGlobal options
-    profile = if forAllUsers
-        then Env.AllUsers
-        else Env.CurrentUser
+    profile
+        | forAllUsers = Env.AllUsers
+        | otherwise   = Env.CurrentUser
 
     skipPrompt = optYes options
-    prompt = if skipPrompt
-        then const Utils.withoutPrompt
-        else Utils.withPrompt
+    prompt
+        | skipPrompt = const withoutPrompt
+        | otherwise  = withPrompt

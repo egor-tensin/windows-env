@@ -13,7 +13,8 @@ import Data.Maybe    (fromJust, isJust)
 import           Options.Applicative
 import qualified Windows.Environment as Env
 
-import qualified Utils
+import Banner
+import Prompt
 
 data Options = Options
     { optName   :: Env.VarName
@@ -65,10 +66,10 @@ removePath options = do
             let newPaths = oldPaths \\ pathsToRemove
             when (length oldPaths /= length newPaths) $ do
                 let newValue = Env.pathJoin newPaths
-                let promptBanner = Utils.engraveBanner profile varName oldValue newValue
-                void $ prompt promptBanner $ Env.engrave profile varName newValue
+                let banner = engraveBanner profile varName oldValue newValue
+                void $ prompt banner $ Env.engrave profile varName newValue
 
     skipPrompt = optYes options
-    prompt = if skipPrompt
-        then const Utils.withoutPrompt
-        else Utils.withPrompt
+    prompt
+        | skipPrompt = const withoutPrompt
+        | otherwise  = withPrompt

@@ -24,6 +24,7 @@ library
 executable add_path
   hs-source-dirs:      apps
   main-is:             AddPath.hs
+  other-modules:       Banner, Prompt
   ghc-options:         -threaded -rtsopts -with-rtsopts=-N
   build-depends:       base
                      , optparse-applicative
@@ -33,6 +34,7 @@ executable add_path
 executable fix_nt_symbol_path
   hs-source-dirs:      apps
   main-is:             FixNtSymbolPath.hs
+  other-modules:       Banner, Prompt
   ghc-options:         -threaded -rtsopts -with-rtsopts=-N
   build-depends:       base, directory, filepath
                      , optparse-applicative
@@ -42,6 +44,7 @@ executable fix_nt_symbol_path
 executable list_path
   hs-source-dirs:      apps
   main-is:             ListPath.hs
+  other-modules:       Banner, Prompt
   ghc-options:         -threaded -rtsopts -with-rtsopts=-N
   build-depends:       base, directory
                      , optparse-applicative
@@ -51,6 +54,7 @@ executable list_path
 executable remove_path
   hs-source-dirs:      apps
   main-is:             RemovePath.hs
+  other-modules:       Banner, Prompt
   ghc-options:         -threaded -rtsopts -with-rtsopts=-N
   build-depends:       base
                      , optparse-applicative
@@ -60,6 +64,7 @@ executable remove_path
 executable set_env
   hs-source-dirs:      apps
   main-is:             SetEnv.hs
+  other-modules:       Banner, Prompt
   ghc-options:         -threaded -rtsopts -with-rtsopts=-N
   build-depends:       base
                      , optparse-applicative
@@ -69,6 +74,7 @@ executable set_env
 executable unset_env
   hs-source-dirs:      apps
   main-is:             UnsetEnv.hs
+  other-modules:       Banner, Prompt
   ghc-options:         -threaded -rtsopts -with-rtsopts=-N
   build-depends:       base
                      , optparse-applicative

@@ -4,21 +4,14 @@
  - See LICENSE.txt for details.
 -}
 
-module Utils
+module Prompt
     ( withPrompt
     , withoutPrompt
-
-    , engraveBanner
-    , wipeBanner
     ) where
 
 import Control.Monad (liftM, void, when)
-import Data.Maybe    (fromJust, isJust)
 import Data.Char     (toLower)
 import System.IO     (hFlush, stdout)
-import Text.Printf   (printf)
-
-import Windows.Environment (Profile, profileKeyPath, VarName, VarValue)
 
 prompt :: String -> IO String
 prompt banner = do
@@ -51,16 +44,3 @@ withPrompt banner m = do
 
 withoutPrompt :: IO a -> IO Bool
 withoutPrompt m = m >> return True
-
-engraveBanner :: Profile -> VarName -> Maybe VarValue -> VarValue -> String
-engraveBanner profile name oldValue newValue =
-    header ++ values
-  where
-    header = printf "Saving variable '%s' to '%s'...\n" name (profileKeyPath profile)
-    values = if isJust oldValue
-        then printf "\tOld value: %s\n\tNew value: %s\n" (fromJust oldValue) newValue
-        else printf "\tValue: %s\n" newValue
-
-wipeBanner :: Profile -> VarName -> String
-wipeBanner profile name =
-    printf "Deleting variable '%s' from '%s'...\n" name (profileKeyPath profile)
