@@ -51,7 +51,7 @@ List directories in your `PATH` variable:
 ```
 
 Lines starting with `+` denote existing directories.
-Conversly, lines starting with `-` denote missing directories.
+Conversely, lines starting with `-` denote missing directories.
 
 ### add_path
 
