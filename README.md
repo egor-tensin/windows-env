@@ -1,8 +1,8 @@
 Windows environment variables
 =============================
 
-A collection of scripts to manage my environmental variables, created mainly
-to:
+A collection of simple programs to manage my environmental variables, created
+mainly to:
 
 * learn a bit of Haskell,
 * make it easier to add paths to the PATH variable, automatically setup
