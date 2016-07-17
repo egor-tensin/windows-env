@@ -1,8 +1,8 @@
-Windows environment variables management
-========================================
+Windows environment variables
+=============================
 
-A collection of simple programs to manage my environment variables, created
-mainly to:
+A collection of simple programs to manage environment variables on Windows,
+created mainly to:
 
 * learn a bit of Haskell,
 * make it easier to add paths to the `PATH` variable, automatically setup
@@ -34,7 +34,7 @@ The complete list of utilities is given below.
 * [unset_env](#unset_env) &mdash; Unset environment variable.
 
 Pass the `--help` flag to a utility to examine its detailed usage information.
-Some usage examples are given below.
+Some examples are given below.
 
 ### list_path
 
@@ -78,7 +78,7 @@ confirmation prompt:
 
 ### set_env
 
-To assign `bar` to the variable `foo` for all users:
+Assign `bar` to the variable `foo` for all users:
 
 ```
 > set_env -g foo bar
@@ -91,7 +91,7 @@ Continue? (y/n) y
 
 ### unset_env
 
-To unset the variable `foo` for current user, skipping the confirmation prompt:
+Unset the variable `foo` for current user, skipping the confirmation prompt:
 
 ```
 > unset_env --yes foo
