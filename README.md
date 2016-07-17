@@ -27,11 +27,11 @@ Usage
 
 The complete list of utilities is given below.
 
-* [list_path](list_path) &mdash; List directories in your `PATH`.
-* [add_path](add_path) &mdash; Add directories to your `PATH`.
-* [remove_path](remove_path) &mdash; Remove directories from your `PATH`.
-* [set_env](set_env) &mdash; Set environment variable.
-* [unset_env](unset_env) &mdash; Unset environment variable.
+* [list_path](#list_path) &mdash; List directories in your `PATH`.
+* [add_path](#add_path) &mdash; Add directories to your `PATH`.
+* [remove_path](#remove_path) &mdash; Remove directories from your `PATH`.
+* [set_env](#set_env) &mdash; Set environment variable.
+* [unset_env](#unset_env) &mdash; Unset environment variable.
 
 Pass the `--help` flag to a utility to examine its detailed usage information.
 Some usage examples are given below.
