@@ -7,7 +7,6 @@
 module Prompt
     ( withPrompt
     , withoutPrompt
-    , promptUnless
     ) where
 
 import Control.Monad (liftM, void, when)
@@ -45,8 +44,3 @@ withPrompt msg m = do
 
 withoutPrompt :: IO a -> IO Bool
 withoutPrompt m = m >> return True
-
-promptUnless :: Bool -> String -> IO a -> IO Bool
-promptUnless skipPrompt msg
-    | skipPrompt = withoutPrompt
-    | otherwise  = withPrompt msg
