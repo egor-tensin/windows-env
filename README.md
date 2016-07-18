@@ -13,14 +13,21 @@ Building
 
 Using [stack]:
 
-    stack build
+```
+> stack setup
+...
+
+> stack build
+```
 
 [stack]: http://docs.haskellstack.org/en/stable/README/
 
 Installation
 ------------
 
-    stack install
+```
+> stack install
+```
 
 Usage
 -----
