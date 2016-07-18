@@ -15,16 +15,16 @@ import System.FilePath  (combine)
 import           Options.Applicative
 import qualified Windows.Environment as Env
 
-import Banner
 import Prompt
+import PromptMessage
 
 data Options = Options
     { optYes    :: Bool
     , optGlobal :: Bool
     } deriving (Eq, Show)
 
-options :: Parser Options
-options = Options
+optionParser :: Parser Options
+optionParser = Options
     <$> optYesDesc
     <*> optGlobalDesc
   where
@@ -73,8 +73,11 @@ fixNtSymbolPath options = do
     let newPaths = union oldPaths $ dirPaths remoteDirs
     when (length oldPaths /= length newPaths) $ do
         let newValue = Env.pathJoin newPaths
-        let banner = engraveBanner profile varName oldValue newValue
-        agreed <- prompt banner $ Env.engrave profile varName newValue
+        let promptAnd = if skipPrompt
+            then withoutPrompt
+            else withPrompt $ engraveMessage profile varName oldValue newValue
+        let engrave = Env.engrave profile varName newValue
+        agreed <- promptAnd engrave
         when agreed $
             createDirs localDirs
   where
@@ -86,12 +89,9 @@ fixNtSymbolPath options = do
         | otherwise   = Env.CurrentUser
 
     skipPrompt = optYes options
-    prompt
-        | skipPrompt = const withoutPrompt
-        | otherwise  = withPrompt
 
 main :: IO ()
 main = execParser parser >>= fixNtSymbolPath
   where
-    parser = info (helper <*> options) $
+    parser = info (helper <*> optionParser) $
         fullDesc <> progDesc "Set up your _NT_SYMBOL_PATH"

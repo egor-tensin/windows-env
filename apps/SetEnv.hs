@@ -11,8 +11,8 @@ import Control.Monad (void)
 import           Options.Applicative
 import qualified Windows.Environment as Env
 
-import Banner
 import Prompt
+import PromptMessage
 
 data Options = Options
     { optYes    :: Bool
@@ -21,8 +21,8 @@ data Options = Options
     , optValue  :: Env.VarValue
     } deriving (Eq, Show)
 
-options :: Parser Options
-options = Options
+optionParser :: Parser Options
+optionParser = Options
     <$> optYesDesc
     <*> optGlobalDesc
     <*> optNameDesc
@@ -44,14 +44,12 @@ options = Options
 main :: IO ()
 main = execParser parser >>= setEnv
   where
-    parser = info (helper <*> options) $
+    parser = info (helper <*> optionParser) $
         fullDesc <> progDesc "Set environment variable"
 
 setEnv :: Options -> IO ()
-setEnv options = void $ prompt banner $ Env.engrave profile varName varValue
+setEnv options = void $ promptAnd engrave
   where
-    banner = engraveBanner profile varName Nothing varValue
-
     varName = optName options
     varValue = optValue options
 
@@ -61,6 +59,8 @@ setEnv options = void $ prompt banner $ Env.engrave profile varName varValue
         | otherwise   = Env.CurrentUser
 
     skipPrompt = optYes options
-    prompt
-        | skipPrompt = const withoutPrompt
-        | otherwise  = withPrompt
+    promptAnd
+        | skipPrompt = withoutPrompt
+        | otherwise  = withPrompt $ engraveMessage profile varName Nothing varValue
+
+    engrave = Env.engrave profile varName varValue

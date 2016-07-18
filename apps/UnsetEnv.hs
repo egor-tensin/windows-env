@@ -11,8 +11,8 @@ import Control.Monad (void)
 import           Options.Applicative
 import qualified Windows.Environment as Env
 
-import Banner
 import Prompt
+import PromptMessage
 
 data Options = Options
     { optYes    :: Bool
@@ -20,13 +20,13 @@ data Options = Options
     , optName   :: Env.VarName
     } deriving (Eq, Show)
 
-options :: Parser Options
-options = Options
-    <$> optYes
+optionParser :: Parser Options
+optionParser = Options
+    <$> optYesDesc
     <*> optGlobalDesc
     <*> optNameDesc
   where
-    optYes = switch $
+    optYesDesc = switch $
         long "yes" <> short 'y' <>
         help "Skip confirmation prompt"
     optGlobalDesc = switch $
@@ -39,14 +39,12 @@ options = Options
 main :: IO ()
 main = execParser parser >>= unsetEnv
   where
-    parser = info (helper <*> options) $
+    parser = info (helper <*> optionParser) $
         fullDesc <> progDesc "Unset environment variable"
 
 unsetEnv :: Options -> IO ()
-unsetEnv options = void $ prompt banner $ Env.wipe profile varName
+unsetEnv options = void $ promptAnd wipe
   where
-    banner = wipeBanner profile varName
-
     varName = optName options
 
     forAllUsers = optGlobal options
@@ -55,6 +53,8 @@ unsetEnv options = void $ prompt banner $ Env.wipe profile varName
         | otherwise   = Env.CurrentUser
 
     skipPrompt = optYes options
-    prompt
-        | skipPrompt = const withoutPrompt
-        | otherwise  = withPrompt
+    promptAnd
+        | skipPrompt = withoutPrompt
+        | otherwise  = withPrompt $ wipeMessage profile varName
+
+    wipe = Env.wipe profile varName

@@ -7,6 +7,7 @@
 module Prompt
     ( withPrompt
     , withoutPrompt
+    , promptUnless
     ) where
 
 import Control.Monad (liftM, void, when)
@@ -14,14 +15,14 @@ import Data.Char     (toLower)
 import System.IO     (hFlush, stdout)
 
 prompt :: String -> IO String
-prompt banner = do
-    putStr banner
+prompt msg = do
+    putStr msg
     hFlush stdout
     getLine
 
 promptYesNo :: String -> IO Bool
-promptYesNo banner = do
-    response <- liftM (map toLower) $ prompt banner
+promptYesNo msg = do
+    response <- liftM (map toLower) $ prompt msg
     if response `elem` yeses
         then return True
         else if response `elem` noes
@@ -35,8 +36,8 @@ promptToContinue :: IO Bool
 promptToContinue = promptYesNo "Continue? (y/n) "
 
 withPrompt :: String -> IO a -> IO Bool
-withPrompt banner m = do
-    putStr banner
+withPrompt msg m = do
+    putStr msg
     hFlush stdout
     agreed <- promptToContinue
     when agreed $ void m
@@ -44,3 +45,8 @@ withPrompt banner m = do
 
 withoutPrompt :: IO a -> IO Bool
 withoutPrompt m = m >> return True
+
+promptUnless :: Bool -> String -> IO a -> IO Bool
+promptUnless skipPrompt msg
+    | skipPrompt = withoutPrompt
+    | otherwise  = withPrompt msg

@@ -24,8 +24,8 @@ library
 executable add_path
   hs-source-dirs:      apps
   main-is:             AddPath.hs
-  other-modules:       Banner, Prompt
-  ghc-options:         -threaded -rtsopts -with-rtsopts=-N
+  other-modules:       Prompt, PromptMessage
+  ghc-options:         -Wall -Werror -threaded -rtsopts -with-rtsopts=-N
   build-depends:       base
                      , optparse-applicative
                      , windows-env
@@ -34,8 +34,8 @@ executable add_path
 executable fix_nt_symbol_path
   hs-source-dirs:      apps
   main-is:             FixNtSymbolPath.hs
-  other-modules:       Banner, Prompt
-  ghc-options:         -threaded -rtsopts -with-rtsopts=-N
+  other-modules:       Prompt, PromptMessage
+  ghc-options:         -Wall -Werror -threaded -rtsopts -with-rtsopts=-N
   build-depends:       base, directory, filepath
                      , optparse-applicative
                      , windows-env
@@ -44,8 +44,8 @@ executable fix_nt_symbol_path
 executable list_path
   hs-source-dirs:      apps
   main-is:             ListPath.hs
-  other-modules:       Banner, Prompt
-  ghc-options:         -threaded -rtsopts -with-rtsopts=-N
+  other-modules:       Prompt, PromptMessage
+  ghc-options:         -Wall -Werror -threaded -rtsopts -with-rtsopts=-N
   build-depends:       base, directory
                      , optparse-applicative
                      , windows-env
@@ -54,8 +54,8 @@ executable list_path
 executable remove_path
   hs-source-dirs:      apps
   main-is:             RemovePath.hs
-  other-modules:       Banner, Prompt
-  ghc-options:         -threaded -rtsopts -with-rtsopts=-N
+  other-modules:       Prompt, PromptMessage
+  ghc-options:         -Wall -Werror -threaded -rtsopts -with-rtsopts=-N
   build-depends:       base
                      , optparse-applicative
                      , windows-env
@@ -64,8 +64,8 @@ executable remove_path
 executable set_env
   hs-source-dirs:      apps
   main-is:             SetEnv.hs
-  other-modules:       Banner, Prompt
-  ghc-options:         -threaded -rtsopts -with-rtsopts=-N
+  other-modules:       Prompt, PromptMessage
+  ghc-options:         -Wall -Werror -threaded -rtsopts -with-rtsopts=-N
   build-depends:       base
                      , optparse-applicative
                      , windows-env
@@ -74,8 +74,8 @@ executable set_env
 executable unset_env
   hs-source-dirs:      apps
   main-is:             UnsetEnv.hs
-  other-modules:       Banner, Prompt
-  ghc-options:         -threaded -rtsopts -with-rtsopts=-N
+  other-modules:       Prompt, PromptMessage
+  ghc-options:         -Wall -Werror -threaded -rtsopts -with-rtsopts=-N
   build-depends:       base
                      , optparse-applicative
                      , windows-env

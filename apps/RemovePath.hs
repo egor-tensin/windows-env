@@ -13,8 +13,8 @@ import Data.Maybe    (fromJust, isJust)
 import           Options.Applicative
 import qualified Windows.Environment as Env
 
-import Banner
 import Prompt
+import PromptMessage
 
 data Options = Options
     { optName   :: Env.VarName
@@ -23,7 +23,8 @@ data Options = Options
     , optPaths  :: [Env.VarValue]
     } deriving (Eq, Show)
 
-options = Options
+optionParser :: Parser Options
+optionParser = Options
     <$> optNameDesc
     <*> optYesDesc
     <*> optGlobalDesc
@@ -45,7 +46,7 @@ options = Options
 main :: IO ()
 main = execParser parser >>= removePath
   where
-    parser = info (helper <*> options) $
+    parser = info (helper <*> optionParser) $
         fullDesc <> progDesc "Remove directories from your PATH"
 
 removePath :: Options -> IO ()
@@ -59,6 +60,8 @@ removePath options = do
 
     forAllUsers = optGlobal options
 
+    skipPrompt = optYes options
+
     removePathFrom profile = do
         oldValue <- Env.query profile varName
         when (isJust oldValue) $ do
@@ -66,10 +69,8 @@ removePath options = do
             let newPaths = oldPaths \\ pathsToRemove
             when (length oldPaths /= length newPaths) $ do
                 let newValue = Env.pathJoin newPaths
-                let banner = engraveBanner profile varName oldValue newValue
-                void $ prompt banner $ Env.engrave profile varName newValue
-
-    skipPrompt = optYes options
-    prompt
-        | skipPrompt = const withoutPrompt
-        | otherwise  = withPrompt
+                let promptAnd = if skipPrompt
+                    then withoutPrompt
+                    else withPrompt $ engraveMessage profile varName oldValue newValue
+                let engrave = Env.engrave profile varName newValue
+                void $ promptAnd engrave

@@ -18,8 +18,8 @@ data Options = Options
     { optName :: Env.VarName
     } deriving (Eq, Show)
 
-options :: Parser Options
-options = Options <$> optNameDesc
+optionParser :: Parser Options
+optionParser = Options <$> optNameDesc
   where
     optNameDesc = strOption $
         long "name" <> short 'n' <> metavar "NAME" <> value "PATH" <>
@@ -28,18 +28,20 @@ options = Options <$> optNameDesc
 main :: IO ()
 main = execParser parser >>= listPath
   where
-    parser = info (helper <*> options) $
+    parser = info (helper <*> optionParser) $
         fullDesc <> progDesc "List directories in your PATH"
 
 listPath :: Options -> IO ()
 listPath options = do
-    oldValue <- getEnv varName
-    let oldPaths = Env.pathSplit oldValue
-    mapM_ printPath oldPaths
+    oldValue <- query
+    printPaths $ Env.pathSplit oldValue
   where
     varName = optName options
-    getEnv = liftM (fromMaybe "") . lookupEnv
 
-    printPath p = do
-        exists <- doesDirectoryExist p
-        putStrLn $ (if exists then "+" else "-") ++ " " ++ p
+    query = liftM (fromMaybe "") $ lookupEnv varName
+
+    printPath path = do
+        exists <- doesDirectoryExist path
+        putStrLn $ (if exists then "+" else "-") ++ " " ++ path
+
+    printPaths = mapM_ printPath
