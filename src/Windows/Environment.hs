@@ -52,7 +52,10 @@ openRootProfileKey :: Profile -> Registry.KeyHandle
 openRootProfileKey = Registry.openRootKey . profileRootKey
 
 openProfileKey :: Profile -> IO Registry.KeyHandle
-openProfileKey profile = Registry.openSubKey (openRootProfileKey profile) (profileSubKeyPath profile)
+openProfileKey profile = Registry.openSubKey rootKey subKeyPath
+  where
+    rootKey = openRootProfileKey profile
+    subKeyPath = profileSubKeyPath profile
 
 type VarName  = Registry.ValueName
 type VarValue = Registry.ValueData
@@ -60,9 +63,14 @@ type VarValue = Registry.ValueData
 query :: Profile -> VarName -> IO (Maybe VarValue)
 query profile name = do
     keyHandle <- openProfileKey profile
-    catchIOError (Registry.getString keyHandle name >>= return . Just) emptyIfDoesNotExist
+    catchIOError (tryQuery keyHandle) ignoreMissing
   where
-    emptyIfDoesNotExist e = if isDoesNotExistError e then return Nothing else ioError e
+    tryQuery keyHandle = do
+        value <- Registry.getString keyHandle name
+        return $ Just value
+    ignoreMissing e
+        | isDoesNotExistError e = return Nothing
+        | otherwise = ioError e
 
 engrave :: Profile -> VarName -> VarValue -> IO ()
 engrave profile name value = do
@@ -73,10 +81,12 @@ engrave profile name value = do
 wipe :: Profile -> VarName -> IO ()
 wipe profile name = do
     keyHandle <- openProfileKey profile
-    catchIOError (Registry.delValue keyHandle name) ignoreIfDoesNotExist
+    catchIOError (Registry.delValue keyHandle name) ignoreMissing
     notifyEnvironmentUpdate
   where
-    ignoreIfDoesNotExist e = if isDoesNotExistError e then return () else ioError e
+    ignoreMissing e
+        | isDoesNotExistError e = return ()
+        | otherwise = ioError e
 
 pathSep :: VarValue
 pathSep = ";"

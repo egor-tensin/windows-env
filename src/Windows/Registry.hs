@@ -31,7 +31,8 @@ import Foreign.ForeignPtr    (withForeignPtr)
 import Foreign.Marshal.Alloc (alloca, allocaBytes)
 import Foreign.Ptr           (castPtr, plusPtr)
 import Foreign.Storable      (peek, poke, sizeOf)
-import System.IO.Error       (catchIOError, doesNotExistErrorType, mkIOError, isDoesNotExistError)
+import System.IO.Error
+    (catchIOError, doesNotExistErrorType, mkIOError, isDoesNotExistError)
 
 import qualified System.Win32.Registry as WinAPI
 import qualified System.Win32.Types    as WinAPI
