@@ -45,7 +45,7 @@ main :: IO ()
 main = execParser parser >>= setEnv
   where
     parser = info (helper <*> optionParser) $
-        fullDesc <> progDesc "Set environment variable"
+        fullDesc <> progDesc "Set environment variables"
 
 setEnv :: Options -> IO ()
 setEnv options = void $ promptAnd engrave

@@ -40,7 +40,7 @@ main :: IO ()
 main = execParser parser >>= unsetEnv
   where
     parser = info (helper <*> optionParser) $
-        fullDesc <> progDesc "Unset environment variable"
+        fullDesc <> progDesc "Unset environment variables"
 
 unsetEnv :: Options -> IO ()
 unsetEnv options = void $ promptAnd wipe
