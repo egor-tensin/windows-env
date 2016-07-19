@@ -40,8 +40,14 @@ listPath options = do
 
     query = liftM (fromMaybe "") $ lookupEnv varName
 
+    prefix exists
+        | exists    = "+ "
+        | otherwise = "- "
+
+    formatPath exists path = prefix exists ++ path
+
     printPath path = do
         exists <- doesDirectoryExist path
-        putStrLn $ (if exists then "+" else "-") ++ " " ++ path
+        putStrLn $ formatPath exists path
 
     printPaths = mapM_ printPath
