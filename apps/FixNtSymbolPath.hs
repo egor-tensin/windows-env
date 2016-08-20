@@ -28,12 +28,12 @@ optionParser = Options
     <$> optYesDesc
     <*> optGlobalDesc
   where
-    optYesDesc = switch $
-        long "yes" <> short 'y' <>
-        help "Skip confirmation prompt"
-    optGlobalDesc = switch $
-        long "global" <> short 'g' <>
-        help "Set up for all users"
+    optYesDesc = switch
+         $ long "yes" <> short 'y'
+        <> help "Skip confirmation prompt"
+    optGlobalDesc = switch
+         $ long "global" <> short 'g'
+        <> help "Set up for all users"
 
 data Dirs = Dirs
     { pdbsDir    :: String

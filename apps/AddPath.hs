@@ -30,18 +30,19 @@ optionParser = Options
     <*> optGlobalDesc
     <*> optPathsDesc
   where
-    optNameDesc = strOption $
-        long "name" <> short 'n' <> metavar "NAME" <> value "PATH" <>
-        help "Variable name ('PATH' by default)"
-    optYesDesc = switch $
-        long "yes" <> short 'y' <>
-        help "Skip confirmation prompt"
-    optGlobalDesc = switch $
-        long "global" <> short 'g' <>
-        help "Add for all users"
-    optPathsDesc = many $ argument str $
-        metavar "PATH" <>
-        help "Directories to add"
+    optNameDesc = strOption
+         $ long "name" <> short 'n'
+        <> metavar "NAME" <> value "PATH"
+        <> help "Variable name ('PATH' by default)"
+    optYesDesc = switch
+         $ long "yes" <> short 'y'
+        <> help "Skip confirmation prompt"
+    optGlobalDesc = switch
+         $ long "global" <> short 'g'
+        <> help "Add for all users"
+    optPathsDesc = many
+         $ argument str $ metavar "PATH"
+        <> help "Directories to add"
 
 main :: IO ()
 main = execParser parser >>= addPath

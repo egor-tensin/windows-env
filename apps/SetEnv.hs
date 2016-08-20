@@ -28,18 +28,18 @@ optionParser = Options
     <*> optNameDesc
     <*> optValueDesc
   where
-    optYesDesc = switch $
-        long "yes" <> short 'y' <>
-        help "Skip confirmation prompt"
-    optGlobalDesc = switch $
-        long "global" <> short 'g' <>
-        help "Set for all users"
-    optNameDesc = argument str $
-        metavar "NAME" <>
-        help "Variable name"
-    optValueDesc = argument str $
-        metavar "VALUE" <>
-        help "Variable value"
+    optYesDesc = switch
+         $ long "yes" <> short 'y'
+        <> help "Skip confirmation prompt"
+    optGlobalDesc = switch
+         $ long "global" <> short 'g'
+        <> help "Set for all users"
+    optNameDesc = argument str
+         $ metavar "NAME"
+        <> help "Variable name"
+    optValueDesc = argument str
+         $ metavar "VALUE"
+        <> help "Variable value"
 
 main :: IO ()
 main = execParser parser >>= setEnv

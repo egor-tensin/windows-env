@@ -30,18 +30,19 @@ optionParser = Options
     <*> optGlobalDesc
     <*> optPathsDesc
   where
-    optNameDesc = strOption $
-        long "name" <> short 'n' <> metavar "NAME" <> value "PATH" <>
-        help "Variable name ('PATH' by default)"
-    optYesDesc = switch $
-        long "yes" <> short 'y' <>
-        help "Skip confirmation prompt"
-    optGlobalDesc = switch $
-        long "global" <> short 'g' <>
-        help "Remove for all users"
-    optPathsDesc = many $ argument str $
-        metavar "PATH" <>
-        help "Directories to remove"
+    optNameDesc = strOption
+         $ long "name" <> short 'n'
+        <> metavar "NAME" <> value "PATH"
+        <> help "Variable name ('PATH' by default)"
+    optYesDesc = switch
+         $ long "yes" <> short 'y'
+        <> help "Skip confirmation prompt"
+    optGlobalDesc = switch
+         $ long "global" <> short 'g'
+        <> help "Remove for all users"
+    optPathsDesc = many $ argument str
+         $ metavar "PATH"
+        <> help "Directories to remove"
 
 main :: IO ()
 main = execParser parser >>= removePath

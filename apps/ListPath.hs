@@ -28,15 +28,18 @@ data Options = Options
     } deriving (Eq, Show)
 
 optionParser :: Parser Options
-optionParser = Options <$> optNameDesc <*> optWhichPathsDesc
+optionParser = Options
+    <$> optNameDesc
+    <*> optWhichPathsDesc
   where
-    optNameDesc = strOption $
-        long "name" <> short 'n' <> metavar "NAME" <> value "PATH" <>
-        help "Variable name ('PATH' by default)"
+    optNameDesc = strOption
+         $ long "name" <> short 'n'
+        <> metavar "NAME" <> value "PATH"
+        <> help "Variable name ('PATH' by default)"
     optWhichPathsDesc = pure All
         <|> flag' ExistingOnly (long "existing" <> short 'e'
             <> help "List existing paths only")
-        <|> flag' MissingOnly  (long "missing"  <> short 'm'
+        <|> flag' MissingOnly (long "missing" <> short 'm'
             <> help "List missing paths only")
 
 main :: IO ()
