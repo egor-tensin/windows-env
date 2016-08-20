@@ -6,7 +6,7 @@
 
 module Main (main) where
 
-import Control.Monad      (filterM, liftM)
+import Control.Monad      (filterM)
 import Data.Maybe         (fromMaybe)
 import System.Directory   (doesDirectoryExist)
 import System.Environment (lookupEnv)
@@ -20,7 +20,7 @@ data WhichPaths = All | ExistingOnly | MissingOnly
 shouldListPath :: WhichPaths -> Env.VarValue -> IO Bool
 shouldListPath All = return . const True
 shouldListPath ExistingOnly = doesDirectoryExist
-shouldListPath MissingOnly  = liftM not . doesDirectoryExist
+shouldListPath MissingOnly  = fmap not . doesDirectoryExist
 
 data Options = Options
     { optName :: Env.VarName
@@ -53,7 +53,7 @@ listPath options = do
     varName = optName options
     whichPaths = optWhichPaths options
 
-    query = liftM (fromMaybe "") $ lookupEnv varName
+    query = fromMaybe "" <$> lookupEnv varName
 
     printPaths paths =
         filterM (shouldListPath whichPaths) paths >>= mapM_ putStrLn

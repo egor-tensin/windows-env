@@ -9,7 +9,7 @@ module Prompt
     , withoutPrompt
     ) where
 
-import Control.Monad (liftM, void, when)
+import Control.Monad (void, when)
 import Data.Char     (toLower)
 import System.IO     (hFlush, stdout)
 
@@ -21,7 +21,7 @@ prompt msg = do
 
 promptYesNo :: String -> IO Bool
 promptYesNo msg = do
-    response <- liftM (map toLower) $ prompt msg
+    response <- map toLower <$> prompt msg
     if response `elem` yeses
         then return True
         else if response `elem` noes

@@ -53,7 +53,7 @@ addPath :: Options -> IO ()
 addPath options = do
     oldValue <- Env.query profile varName
     let oldPaths = Env.pathSplit $ fromMaybe "" oldValue
-    let newPaths = union oldPaths pathsToAdd
+    let newPaths = oldPaths `union` pathsToAdd
     when (length oldPaths /= length newPaths) $ do
         let newValue = Env.pathJoin newPaths
         let promptAnd = if skipPrompt

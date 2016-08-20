@@ -25,6 +25,7 @@ module Windows.Registry
     , setString
     ) where
 
+import Control.Monad         (unless)
 import Data.List             (intercalate)
 import Data.List.Split       (splitOn)
 import Foreign.ForeignPtr    (withForeignPtr)
@@ -76,7 +77,7 @@ raiseDoesNotExistError functionName =
     ioError $ mkIOError doesNotExistErrorType functionName Nothing Nothing
 
 raiseUnknownError :: String -> WinAPI.ErrCode -> IO a
-raiseUnknownError functionName exitCode = WinAPI.failWith functionName exitCode
+raiseUnknownError = WinAPI.failWith
 
 exitCodeSuccess :: WinAPI.ErrCode
 exitCodeSuccess = 0
@@ -94,9 +95,8 @@ delValue keyHandle valueName =
     withForeignPtr keyHandle $ \keyPtr ->
     WinAPI.withTString valueName $ \valueNamePtr -> do
         ret <- WinAPI.c_RegDeleteValue keyPtr valueNamePtr
-        if ret == exitCodeSuccess
-            then return ()
-            else raiseError "RegDeleteValue" ret
+        unless (ret == exitCodeSuccess) $
+            raiseError "RegDeleteValue" ret
 
 type ValueType = WinAPI.RegValueType
 

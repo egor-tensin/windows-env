@@ -52,7 +52,7 @@ main = execParser parser >>= removePath
 removePath :: Options -> IO ()
 removePath options = do
     removePathFrom Env.CurrentUser
-    when forAllUsers $ do
+    when forAllUsers $
         removePathFrom Env.AllUsers
   where
     varName = optName options
