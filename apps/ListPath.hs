@@ -23,7 +23,7 @@ shouldListPath ExistingOnly = doesDirectoryExist
 shouldListPath MissingOnly  = fmap not . doesDirectoryExist
 
 data Options = Options
-    { optName :: Env.VarName
+    { optName       :: Env.VarName
     , optWhichPaths :: WhichPaths
     } deriving (Eq, Show)
 

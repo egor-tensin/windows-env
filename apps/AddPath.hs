@@ -40,8 +40,8 @@ optionParser = Options
     optGlobalDesc = switch
          $ long "global" <> short 'g'
         <> help "Add for all users"
-    optPathsDesc = many
-         $ argument str $ metavar "PATH"
+    optPathsDesc = many $ argument str
+         $ metavar "PATH"
         <> help "Directories to add"
 
 main :: IO ()
