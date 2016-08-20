@@ -6,7 +6,7 @@
 
 module Main (main) where
 
-import Control.Monad      (liftM)
+import Control.Monad      (filterM, liftM)
 import Data.Maybe         (fromMaybe)
 import System.Directory   (doesDirectoryExist)
 import System.Environment (lookupEnv)
@@ -14,16 +14,30 @@ import System.Environment (lookupEnv)
 import           Options.Applicative
 import qualified Windows.Environment as Env
 
+data WhichPaths = All | ExistingOnly | MissingOnly
+                deriving (Eq, Show)
+
+shouldListPath :: WhichPaths -> Env.VarValue -> IO Bool
+shouldListPath All = return . const True
+shouldListPath ExistingOnly = doesDirectoryExist
+shouldListPath MissingOnly  = liftM not . doesDirectoryExist
+
 data Options = Options
     { optName :: Env.VarName
+    , optWhichPaths :: WhichPaths
     } deriving (Eq, Show)
 
 optionParser :: Parser Options
-optionParser = Options <$> optNameDesc
+optionParser = Options <$> optNameDesc <*> optWhichPathsDesc
   where
     optNameDesc = strOption $
         long "name" <> short 'n' <> metavar "NAME" <> value "PATH" <>
         help "Variable name ('PATH' by default)"
+    optWhichPathsDesc = pure All
+        <|> flag' ExistingOnly (long "existing" <> short 'e'
+            <> help "List existing paths only")
+        <|> flag' MissingOnly  (long "missing"  <> short 'm'
+            <> help "List missing paths only")
 
 main :: IO ()
 main = execParser parser >>= listPath
@@ -37,17 +51,9 @@ listPath options = do
     printPaths $ Env.pathSplit oldValue
   where
     varName = optName options
+    whichPaths = optWhichPaths options
 
     query = liftM (fromMaybe "") $ lookupEnv varName
 
-    prefix exists
-        | exists    = "+ "
-        | otherwise = "- "
-
-    formatPath exists path = prefix exists ++ path
-
-    printPath path = do
-        exists <- doesDirectoryExist path
-        putStrLn $ formatPath exists path
-
-    printPaths = mapM_ printPath
+    printPaths paths =
+        filterM (shouldListPath whichPaths) paths >>= mapM_ putStrLn

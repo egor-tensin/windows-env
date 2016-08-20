@@ -55,16 +55,19 @@ List directories in your `PATH` variable:
 
 ```
 > list_path
-- C:\Program Files\Haskell\bin
-+ C:\Program Files\Haskell Platform\8.0.1\lib\extralibs\bin
-+ C:\Program Files\Haskell Platform\8.0.1\bin
-+ C:\Users\Egor\AppData\Roaming\local\bin
-- C:\Users\Egor\AppData\Roaming\cabal\bin
+C:\Program Files\Haskell\bin
+C:\Program Files\Haskell Platform\8.0.1\lib\extralibs\bin
+C:\Program Files\Haskell Platform\8.0.1\bin
+C:\Users\Egor\AppData\Roaming\local\bin
+C:\Users\Egor\AppData\Roaming\cabal\bin
 ...
 ```
 
-Lines starting with `+` denote existing directories.
-Conversely, lines starting with `-` denote missing directories.
+```
+> list_path --missing
+C:\Users\Egor\AppData\Roaming\cabal\bin
+...
+```
 
 ### add_path
 
