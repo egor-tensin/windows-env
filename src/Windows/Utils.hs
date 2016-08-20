@@ -1,8 +1,8 @@
-{-
- - Copyright 2016 Egor Tensin <Egor.Tensin@gmail.com>
- - This file is licensed under the terms of the MIT License.
- - See LICENSE.txt for details.
--}
+-- |
+-- Copyright   : (c) 2016 Egor Tensin <Egor.Tensin@gmail.com>
+-- License     : MIT
+-- Maintainer  : Egor.Tensin@gmail.com
+-- Stability   : experimental
 
 module Windows.Utils
     ( notifyEnvironmentUpdate

@@ -116,8 +116,7 @@ Unset the variable `foo` for current user, skipping the confirmation prompt:
 License
 -------
 
-This project, including all of the files and their contents, is licensed under
-the terms of the MIT License.
+Distributed under the MIT License.
 See [LICENSE.txt] for details.
 
 [LICENSE.txt]: LICENSE.txt
