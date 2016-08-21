@@ -31,16 +31,6 @@ executable add_path
                      , windows-env
   default-language:    Haskell2010
 
-executable fix_nt_symbol_path
-  hs-source-dirs:      apps
-  main-is:             FixNtSymbolPath.hs
-  other-modules:       Prompt, PromptMessage
-  ghc-options:         -Wall -Werror -threaded -rtsopts -with-rtsopts=-N
-  build-depends:       base, directory, filepath
-                     , optparse-applicative
-                     , windows-env
-  default-language:    Haskell2010
-
 executable list_path
   hs-source-dirs:      apps
   main-is:             ListPath.hs
