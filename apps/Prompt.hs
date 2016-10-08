@@ -30,7 +30,7 @@ promptYesNo msg = do
   where
     yeses = ["y", "yes"]
     noes = ["n", "no"]
-    
+
 promptToContinue :: IO Bool
 promptToContinue = promptYesNo "Continue? (y/n) "
 
