@@ -1,12 +1,12 @@
 Windows environment variables
 =============================
 
-A collection of simple programs to manage environment variables on Windows,
+A collection of simple utilities to manage Windows environment variables,
 created mainly to:
 
 * learn a bit of Haskell,
-* make it easier to add paths to the `PATH` variable, automatically setup
-`_NT_SYMBOL_PATH`, etc.
+* make it easier to add directories to the `PATH` variable, list missing
+directories in your `PATH`, etc.
 
 Building
 --------
@@ -18,6 +18,7 @@ Using [stack]:
 ...
 
 > stack build
+...
 ```
 
 [stack]: http://docs.haskellstack.org/en/stable/README/
@@ -27,6 +28,7 @@ Installation
 
 ```
 > stack install
+...
 ```
 
 Usage
@@ -40,7 +42,7 @@ The complete list of utilities is given below.
 * [set_env] &mdash; Set environment variables.
 * [unset_env] &mdash; Unset environment variables.
 
-Pass the `--help` flag to a utility to examine its detailed usage information.
+Pass the `--help` flag to an utility to examine its detailed usage information.
 Some examples are given below.
 
 [list_path]: #list_path
@@ -51,7 +53,7 @@ Some examples are given below.
 
 ### list_path
 
-List directories in your `PATH` variable:
+List directories in your `PATH`:
 
 ```
 > list_path
@@ -62,6 +64,8 @@ C:\Users\Egor\AppData\Roaming\local\bin
 C:\Users\Egor\AppData\Roaming\cabal\bin
 ...
 ```
+
+Only list missing directories in your `PATH`:
 
 ```
 > list_path --missing
@@ -83,7 +87,22 @@ Continue? (y/n) y
 >
 ```
 
+Add "C:\test" to global `PATH`, skipping the confirmation prompt:
+
+```
+> add_path --global -y C:\test
+```
+
 ### remove_path
+
+Remove "C:\test" from current user's `PATH`:
+
+```
+> remove_path C:\test
+Saving variable 'PATH' to 'HKCU\Environment'...
+        Old value: C:\Users\Egor\AppData\Roaming\local\bin;C:\Users\Egor\AppData\Roaming\cabal\bin;C:\test
+        New value: C:\Users\Egor\AppData\Roaming\local\bin;C:\Users\Egor\AppData\Roaming\cabal\bin
+```
 
 Remove "C:\test" from both current user's and global `PATH`s, skipping the
 confirmation prompt:
