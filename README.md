@@ -37,8 +37,8 @@ Usage
 The complete list of utilities is given below.
 
 * [list_path] &mdash; List directories in your `PATH`.
-* [add_path] &mdash; Add directories to your `PATH`.
-* [remove_path] &mdash; Remove directories from your `PATH`.
+* [add_path] &mdash; Add directories to `PATH`.
+* [remove_path] &mdash; Remove directories from `PATH`.
 * [set_env] &mdash; Assign values to environment variables.
 * [unset_env] &mdash; Delete environment variables.
 
@@ -83,8 +83,6 @@ Saving variable 'PATH' to 'HKCU\Environment'...
         Old value: C:\Users\Egor\AppData\Roaming\local\bin;C:\Users\Egor\AppData\Roaming\cabal\bin
         New value: C:\Users\Egor\AppData\Roaming\local\bin;C:\Users\Egor\AppData\Roaming\cabal\bin;C:\test
 Continue? (y/n) y
-
->
 ```
 
 Add "C:\test" to the global `PATH`, skipping the confirmation prompt:
