@@ -1,6 +1,6 @@
 name:                windows-env
 version:             0.1.0.0
-synopsis:            Windows environment variables management
+synopsis:            Manage Windows environment variables
 description:         Please see README.md
 homepage:            https://github.com/egor-tensin/windows-env
 license:             MIT
