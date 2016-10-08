@@ -39,8 +39,8 @@ The complete list of utilities is given below.
 * [list_path] &mdash; List directories in your `PATH`.
 * [add_path] &mdash; Add directories to your `PATH`.
 * [remove_path] &mdash; Remove directories from your `PATH`.
-* [set_env] &mdash; Set environment variables.
-* [unset_env] &mdash; Unset environment variables.
+* [set_env] &mdash; Assign values to environment variables.
+* [unset_env] &mdash; Delete environment variables.
 
 Pass the `--help` flag to an utility to examine its detailed usage information.
 Some examples are given below.
@@ -87,7 +87,7 @@ Continue? (y/n) y
 >
 ```
 
-Add "C:\test" to global `PATH`, skipping the confirmation prompt:
+Add "C:\test" to the global `PATH`, skipping the confirmation prompt:
 
 ```
 > add_path --global -y C:\test
@@ -104,7 +104,7 @@ Saving variable 'PATH' to 'HKCU\Environment'...
         New value: C:\Users\Egor\AppData\Roaming\local\bin;C:\Users\Egor\AppData\Roaming\cabal\bin
 ```
 
-Remove "C:\test" from both current user's and global `PATH`s, skipping the
+Remove "C:\test" from both current user's and the global `PATH`s, skipping the
 confirmation prompt:
 
 ```
@@ -113,23 +113,37 @@ confirmation prompt:
 
 ### set_env
 
-Assign `bar` to the variable `foo` for all users:
+Assign `bar` to the variable `foo` in current user's environment, skipping the
+confirmation prompt:
 
 ```
-> set_env -g foo bar
+> set_env -y foo bar
+```
+
+Assign `bar` to the variable `foo` in the global environment:
+
+```
+> set_env --global foo bar
 Saving variable 'foo' to 'HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Environment'...
         Value: bar
 Continue? (y/n) y
-
->
 ```
 
 ### unset_env
 
-Unset the variable `foo` for current user, skipping the confirmation prompt:
+Delete the variable `foo` from current users's environment, skipping the
+confirmation prompt:
 
 ```
-> unset_env --yes foo
+> unset_env -y foo
+```
+
+Delete the variable `foo` from the global environment:
+
+```
+> unset_env --global foo
+Deleting variable 'foo' from 'HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Environment'...
+Continue? (y/n) y
 ```
 
 License
