@@ -21,7 +21,7 @@ library
   build-depends:       base, split, Win32
   default-language:    Haskell2010
 
-executable add_path
+executable addpath
   hs-source-dirs:      apps
   main-is:             AddPath.hs
   other-modules:       Prompt, PromptMessage
@@ -31,7 +31,7 @@ executable add_path
                      , windows-env
   default-language:    Haskell2010
 
-executable list_path
+executable paths
   hs-source-dirs:      apps
   main-is:             ListPath.hs
   other-modules:       Prompt, PromptMessage
@@ -41,7 +41,7 @@ executable list_path
                      , windows-env
   default-language:    Haskell2010
 
-executable remove_path
+executable delpath
   hs-source-dirs:      apps
   main-is:             RemovePath.hs
   other-modules:       Prompt, PromptMessage
@@ -51,7 +51,7 @@ executable remove_path
                      , windows-env
   default-language:    Haskell2010
 
-executable set_env
+executable setenv
   hs-source-dirs:      apps
   main-is:             SetEnv.hs
   other-modules:       Prompt, PromptMessage
@@ -61,7 +61,7 @@ executable set_env
                      , windows-env
   default-language:    Haskell2010
 
-executable unset_env
+executable delenv
   hs-source-dirs:      apps
   main-is:             UnsetEnv.hs
   other-modules:       Prompt, PromptMessage
