@@ -18,7 +18,7 @@ library
   exposed-modules:     Windows.Environment
   other-modules:       Windows.Registry, Windows.Utils
   ghc-options:         -Wall -Werror
-  build-depends:       base, split, Win32
+  build-depends:       base, bytestring, split, text, Win32
   default-language:    Haskell2010
 
 executable addpath

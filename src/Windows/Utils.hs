@@ -8,11 +8,13 @@ module Windows.Utils
     ( notifyEnvironmentUpdate
     ) where
 
+import Foreign.C.Types (CIntPtr(..))
+
 import qualified Graphics.Win32.GDI.Types as WinAPI
 import qualified Graphics.Win32.Message   as WinAPI
 import qualified System.Win32.Types       as WinAPI
 
-foreign import ccall "SendNotifyMessageW"
+foreign import ccall "Windows.h SendNotifyMessageW"
     c_SendNotifyMessage :: WinAPI.HWND -> WinAPI.WindowMessage -> WinAPI.WPARAM -> WinAPI.LPARAM -> IO WinAPI.LRESULT
 
 notifyEnvironmentUpdate :: IO ()

@@ -61,6 +61,6 @@ setEnv options = void $ promptAnd engrave
     skipPrompt = optYes options
     promptAnd
         | skipPrompt = withoutPrompt
-        | otherwise  = withPrompt $ engraveMessage profile varName Nothing varValue
+        | otherwise  = withPrompt $ engraveMessage profile varName "" varValue
 
     engrave = Env.engrave profile varName varValue

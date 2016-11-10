@@ -6,9 +6,9 @@
 
 module Main (main) where
 
-import Control.Monad (void, when)
-import Data.List     (union)
-import Data.Maybe    (fromMaybe)
+import Control.Monad   (void, when)
+import Data.List       (union)
+import System.IO.Error (ioError, isDoesNotExistError)
 
 import           Options.Applicative
 import qualified Windows.Environment as Env
@@ -52,8 +52,8 @@ main = execParser parser >>= addPath
 
 addPath :: Options -> IO ()
 addPath options = do
-    oldValue <- Env.query profile varName
-    let oldPaths = Env.pathSplit $ fromMaybe "" oldValue
+    oldValue <- Env.query profile varName >>= emptyIfNotFound
+    let oldPaths = Env.pathSplit oldValue
     let newPaths = oldPaths `union` pathsToAdd
     when (length oldPaths /= length newPaths) $ do
         let newValue = Env.pathJoin newPaths
@@ -72,3 +72,8 @@ addPath options = do
         | otherwise   = Env.CurrentUser
 
     skipPrompt = optYes options
+
+    emptyIfNotFound (Left e)
+        | isDoesNotExistError e = return ""
+        | otherwise = ioError e
+    emptyIfNotFound (Right s) = return s

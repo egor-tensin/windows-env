@@ -9,26 +9,23 @@ module PromptMessage
     , wipeMessage
     ) where
 
-import Data.Maybe  (isJust)
 import Text.Printf (printf)
 
 import qualified Windows.Environment as Env
 
-engraveMessage :: Env.Profile -> Env.VarName -> Maybe Env.VarValue -> Env.VarValue -> String
+engraveMessage :: Env.Profile -> Env.VarName -> Env.VarValue -> Env.VarValue -> String
 engraveMessage profile name oldValue newValue =
     descriptionMsg ++ oldValueMsg ++ newValueMsg
   where
     profileKey = Env.profileKeyPath profile
 
-    descriptionMsg = printf "Saving variable '%s' to '%s'...\n" name profileKey
+    descriptionMsg = printf "Saving variable '%s' to '%s'...\n" name (show profileKey)
 
-    oldValueMsg = maybe "" (printf "\tOld value: %s\n") oldValue
-    newValueMsg
-        | isJust oldValue = printf "\tNew value: %s\n" newValue
-        | otherwise       = printf "\tValue: %s\n"     newValue
+    oldValueMsg = printf "\tOld value: %s\n" oldValue
+    newValueMsg = printf "\tNew value: %s\n" newValue
 
 wipeMessage :: Env.Profile -> Env.VarName -> String
 wipeMessage profile name =
-    printf "Deleting variable '%s' from '%s'...\n" name profileKey
+    printf "Deleting variable '%s' from '%s'...\n" name (show profileKey)
   where
     profileKey = Env.profileKeyPath profile

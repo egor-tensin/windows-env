@@ -20,75 +20,42 @@ module Windows.Environment
     , pathSplit
     ) where
 
-import Data.List       (intercalate)
-import Data.List.Split (splitOn)
-import System.IO.Error (catchIOError, isDoesNotExistError)
+import Control.Exception (finally)
+import Data.List         (intercalate)
+import Data.List.Split   (splitOn)
 
 import qualified Windows.Registry as Registry
-import           Windows.Utils (notifyEnvironmentUpdate)
+import           Windows.Utils    (notifyEnvironmentUpdate)
 
 data Profile = CurrentUser
              | AllUsers
              deriving (Eq, Show)
 
-profileRootKey :: Profile -> Registry.RootKey
-profileRootKey CurrentUser = Registry.CurrentUser
-profileRootKey AllUsers    = Registry.LocalMachine
-
-profileRootKeyPath :: Profile -> Registry.KeyPath
-profileRootKeyPath = Registry.rootKeyPath . profileRootKey
-
-profileSubKeyPath :: Profile -> Registry.KeyPath
-profileSubKeyPath CurrentUser =
-    Registry.keyPathFromString "Environment"
-profileSubKeyPath AllUsers =
-    Registry.keyPathFromString "SYSTEM\\CurrentControlSet\\Control\\Session Manager\\Environment"
-
 profileKeyPath :: Profile -> Registry.KeyPath
-profileKeyPath profile = Registry.keyPathJoin
-    [ profileRootKeyPath profile
-    , profileSubKeyPath  profile
+profileKeyPath CurrentUser = Registry.KeyPath Registry.CurrentUser ["Environment"]
+profileKeyPath AllUsers    = Registry.KeyPath Registry.LocalMachine
+    [ "SYSTEM"
+    , "CurrentControlSet"
+    , "Control"
+    , "Session Manager"
+    , "Environment"
     ]
 
-openRootProfileKey :: Profile -> Registry.KeyHandle
-openRootProfileKey = Registry.openRootKey . profileRootKey
+type VarName  = String
+type VarValue = String
 
-openProfileKey :: Profile -> IO Registry.KeyHandle
-openProfileKey profile = Registry.openSubKey rootKey subKeyPath
+query :: Profile -> VarName -> IO (Either IOError VarValue)
+query profile name = Registry.getExpandedString (profileKeyPath profile) name
+
+engrave :: Profile -> VarName -> VarValue -> IO (Either IOError ())
+engrave profile name value = finally doEngrave notifyEnvironmentUpdate
   where
-    rootKey = openRootProfileKey profile
-    subKeyPath = profileSubKeyPath profile
+    doEngrave = Registry.setExpandableString (profileKeyPath profile) name value
 
-type VarName  = Registry.ValueName
-type VarValue = Registry.ValueData
-
-query :: Profile -> VarName -> IO (Maybe VarValue)
-query profile name = do
-    keyHandle <- openProfileKey profile
-    catchIOError (tryQuery keyHandle) ignoreMissing
+wipe :: Profile -> VarName -> IO (Either IOError ())
+wipe profile name = finally doWipe notifyEnvironmentUpdate
   where
-    tryQuery keyHandle = do
-        value <- Registry.getString keyHandle name
-        return $ Just value
-    ignoreMissing e
-        | isDoesNotExistError e = return Nothing
-        | otherwise = ioError e
-
-engrave :: Profile -> VarName -> VarValue -> IO ()
-engrave profile name value = do
-    keyHandle <- openProfileKey profile
-    Registry.setString keyHandle name value
-    notifyEnvironmentUpdate
-
-wipe :: Profile -> VarName -> IO ()
-wipe profile name = do
-    keyHandle <- openProfileKey profile
-    catchIOError (Registry.delValue keyHandle name) ignoreMissing
-    notifyEnvironmentUpdate
-  where
-    ignoreMissing e
-        | isDoesNotExistError e = return ()
-        | otherwise = ioError e
+    doWipe = Registry.deleteValue (profileKeyPath profile) name
 
 pathSep :: VarValue
 pathSep = ";"

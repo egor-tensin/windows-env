@@ -6,9 +6,9 @@
 
 module Main (main) where
 
-import Control.Monad (void, when)
-import Data.List     ((\\))
-import Data.Maybe    (fromJust, isJust)
+import Control.Monad   (void, when)
+import Data.List       ((\\))
+import System.IO.Error (ioError, isDoesNotExistError)
 
 import           Options.Applicative
 import qualified Windows.Environment as Env
@@ -63,15 +63,19 @@ removePath options = do
 
     skipPrompt = optYes options
 
-    removePathFrom profile = do
-        oldValue <- Env.query profile varName
-        when (isJust oldValue) $ do
-            let oldPaths = Env.pathSplit $ fromJust oldValue
-            let newPaths = oldPaths \\ pathsToRemove
-            when (length oldPaths /= length newPaths) $ do
-                let newValue = Env.pathJoin newPaths
-                let promptAnd = if skipPrompt
-                    then withoutPrompt
-                    else withPrompt $ engraveMessage profile varName oldValue newValue
-                let engrave = Env.engrave profile varName newValue
-                void $ promptAnd engrave
+    removePathFrom profile = Env.query profile varName >>= either ignoreMissing (doRemovePathFrom profile)
+
+    ignoreMissing e
+        | isDoesNotExistError e = return ()
+        | otherwise = ioError e
+
+    doRemovePathFrom profile oldValue = do
+        let oldPaths = Env.pathSplit oldValue
+        let newPaths = oldPaths \\ pathsToRemove
+        when (length oldPaths /= length newPaths) $ do
+            let newValue = Env.pathJoin newPaths
+            let promptAnd = if skipPrompt
+                then withoutPrompt
+                else withPrompt $ engraveMessage profile varName oldValue newValue
+            let engrave = Env.engrave profile varName newValue
+            void $ promptAnd engrave
