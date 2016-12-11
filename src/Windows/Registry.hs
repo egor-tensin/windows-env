@@ -23,6 +23,7 @@ module Windows.Registry
     , queryValue
 
     , getValue
+    , GetValueFlag(..)
     , getExpandedString
 
     , setValue
@@ -150,16 +151,18 @@ queryValue keyPath valueName =
     openCloseCatch keyPath $ \keyHandle ->
     withForeignPtr keyHandle $ \keyHandlePtr ->
     WinAPI.withTString valueName $ \valueNamePtr ->
-    alloca $ \dataSizePtr -> do
-        poke dataSizePtr 0
-        WinAPI.failUnlessSuccess "RegQueryValueExW" $ c_RegQueryValueEx keyHandlePtr valueNamePtr WinAPI.nullPtr WinAPI.nullPtr WinAPI.nullPtr dataSizePtr
-        dataSize <- fromIntegral <$> peek dataSizePtr
-        alloca $ \dataTypePtr ->
-            allocaBytes dataSize $ \bufferPtr -> do
-                WinAPI.failUnlessSuccess "RegQueryValueExW" $ c_RegQueryValueEx keyHandlePtr valueNamePtr WinAPI.nullPtr dataTypePtr bufferPtr dataSizePtr
-                buffer <- peekArray dataSize bufferPtr
-                dataType <- peek dataTypePtr
-                return (toEnum $ fromIntegral dataType, B.pack buffer)
+    alloca $ \valueSizePtr -> do
+        poke valueSizePtr 0
+        WinAPI.failUnlessSuccess "RegQueryValueExW" $
+            c_RegQueryValueEx keyHandlePtr valueNamePtr WinAPI.nullPtr WinAPI.nullPtr WinAPI.nullPtr valueSizePtr
+        valueSize <- fromIntegral <$> peek valueSizePtr
+        alloca $ \valueTypePtr ->
+            allocaBytes valueSize $ \bufferPtr -> do
+                WinAPI.failUnlessSuccess "RegQueryValueExW" $
+                    c_RegQueryValueEx keyHandlePtr valueNamePtr WinAPI.nullPtr valueTypePtr bufferPtr valueSizePtr
+                buffer <- peekArray valueSize bufferPtr
+                valueType <- peek valueTypePtr
+                return (toEnum $ fromIntegral valueType, B.pack buffer)
 
 data GetValueFlag = RestrictAny
                   | RestrictNone
@@ -190,22 +193,25 @@ getValueFlagsTable =
     ]
 
 getValue :: IsKeyPath a => a -> ValueName -> [GetValueFlag] -> IO (Either IOError ValueData)
-getValue keyPath valueName flagList =
+getValue keyPath valueName flags =
     openCloseCatch keyPath $ \keyHandle ->
     withForeignPtr keyHandle $ \keyHandlePtr ->
     WinAPI.withTString valueName $ \valueNamePtr ->
-    alloca $ \dataSizePtr -> do
-        poke dataSizePtr 0
-        let flags = fromIntegral $ foldr (.|.) 0 $ map fromEnum flagList
-        WinAPI.failUnlessSuccess "RegGetValueW" $ c_RegGetValue keyHandlePtr WinAPI.nullPtr valueNamePtr flags WinAPI.nullPtr WinAPI.nullPtr dataSizePtr
-        bufferCapacity <- fromIntegral <$> peek dataSizePtr
-        alloca $ \dataTypePtr ->
+    alloca $ \valueSizePtr -> do
+        poke valueSizePtr 0
+        WinAPI.failUnlessSuccess "RegGetValueW" $
+            c_RegGetValue keyHandlePtr WinAPI.nullPtr valueNamePtr rawFlags WinAPI.nullPtr WinAPI.nullPtr valueSizePtr
+        bufferCapacity <- fromIntegral <$> peek valueSizePtr
+        alloca $ \valueTypePtr ->
             allocaBytes bufferCapacity $ \bufferPtr -> do
-                WinAPI.failUnlessSuccess "RegGetValueW" $ c_RegGetValue keyHandlePtr WinAPI.nullPtr valueNamePtr flags dataTypePtr bufferPtr dataSizePtr
-                bufferSize <- fromIntegral <$> peek dataSizePtr
+                WinAPI.failUnlessSuccess "RegGetValueW" $
+                    c_RegGetValue keyHandlePtr WinAPI.nullPtr valueNamePtr rawFlags valueTypePtr bufferPtr valueSizePtr
+                bufferSize <- fromIntegral <$> peek valueSizePtr
                 buffer <- peekArray bufferSize bufferPtr
-                dataType <- peek dataTypePtr
-                return (toEnum $ fromIntegral dataType, B.pack buffer)
+                valueType <- peek valueTypePtr
+                return (toEnum $ fromIntegral valueType, B.pack buffer)
+  where
+    rawFlags = fromIntegral $ foldr (.|.) 0 $ map fromEnum flags
 
 getExpandedString :: IsKeyPath a => a -> ValueName -> IO (Either IOError String)
 getExpandedString keyPath valueName = do
@@ -216,12 +222,15 @@ setValue :: IsKeyPath a => a -> ValueName -> ValueData -> IO (Either IOError ())
 setValue keyPath valueName (valueType, valueData) =
     openCloseCatch keyPath $ \keyHandle ->
     withForeignPtr keyHandle $ \keyHandlePtr ->
-    WinAPI.withTString valueName $ \valueNamePtr -> do
-        let buffer = B.unpack valueData
-        let dataSize = B.length valueData
-        allocaBytes dataSize $ \bufferPtr -> do
-            pokeArray bufferPtr buffer
-            WinAPI.failUnlessSuccess "RegSetValueExW" $ c_RegSetValueEx keyHandlePtr valueNamePtr 0 (fromIntegral $ fromEnum valueType) bufferPtr (fromIntegral dataSize)
+    WinAPI.withTString valueName $ \valueNamePtr ->
+    allocaBytes bufferSize $ \bufferPtr -> do
+        pokeArray bufferPtr buffer
+        WinAPI.failUnlessSuccess "RegSetValueExW" $
+            c_RegSetValueEx keyHandlePtr valueNamePtr 0 rawValueType bufferPtr (fromIntegral bufferSize)
+  where
+    rawValueType = fromIntegral $ fromEnum valueType
+    buffer = B.unpack valueData
+    bufferSize = B.length valueData
 
 setString :: IsKeyPath a => a -> ValueName -> String -> IO (Either IOError ())
 setString keyPath valueName valueData =
@@ -236,4 +245,5 @@ deleteValue keyPath valueName =
     openCloseCatch keyPath $ \keyHandle ->
     withForeignPtr keyHandle $ \keyHandlePtr ->
     WinAPI.withTString valueName $ \valueNamePtr ->
-    WinAPI.failUnlessSuccess "RegDeleteValueW" $ WinAPI.c_RegDeleteValue keyHandlePtr valueNamePtr
+    WinAPI.failUnlessSuccess "RegDeleteValueW" $
+        WinAPI.c_RegDeleteValue keyHandlePtr valueNamePtr
