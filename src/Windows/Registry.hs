@@ -23,14 +23,18 @@ module Windows.Registry
     , deleteValue
 
     , queryValue
+    , queryType
 
     , getValue
     , GetValueFlag(..)
+    , getType
+
     , getExpandedString
 
     , setValue
     , setString
     , setExpandableString
+    , setStringPreserveType
     ) where
 
 import           Data.Bits             ((.|.))
