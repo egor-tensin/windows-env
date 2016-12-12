@@ -52,7 +52,7 @@ main = execParser parser >>= addPath
 
 addPath :: Options -> IO ()
 addPath options = do
-    oldValue <- Env.query profile varName >>= emptyIfNotFound
+    oldValue <- Env.query profile varName >>= emptyIfMissing
     let oldPaths = Env.pathSplit oldValue
     let newPaths = oldPaths `union` pathsToAdd
     when (length oldPaths /= length newPaths) $ do
@@ -73,7 +73,7 @@ addPath options = do
 
     skipPrompt = optYes options
 
-    emptyIfNotFound (Left e)
+    emptyIfMissing (Left e)
         | isDoesNotExistError e = return ""
         | otherwise = ioError e
-    emptyIfNotFound (Right s) = return s
+    emptyIfMissing (Right s) = return s

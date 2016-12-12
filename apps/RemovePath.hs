@@ -63,7 +63,9 @@ removePath options = do
 
     skipPrompt = optYes options
 
-    removePathFrom profile = Env.query profile varName >>= either ignoreMissing (doRemovePathFrom profile)
+    removePathFrom profile = do
+        oldValue <- Env.query profile varName
+        either ignoreMissing (doRemovePathFrom profile) oldValue
 
     ignoreMissing e
         | isDoesNotExistError e = return ()
