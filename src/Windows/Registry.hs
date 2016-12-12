@@ -6,6 +6,8 @@
 --
 -- Low-level utility functions for reading and writing registry values.
 
+{-# OPTIONS_GHC -XTupleSections #-}
+
 module Windows.Registry
     ( IsKeyPath(..)
     , RootKey(..)
@@ -43,7 +45,7 @@ import           Foreign.ForeignPtr    (withForeignPtr)
 import           Foreign.Marshal.Alloc (alloca, allocaBytes)
 import           Foreign.Marshal.Array (peekArray, pokeArray)
 import           Foreign.Storable      (peek, poke)
-import           System.IO.Error       (catchIOError)
+import           System.IO.Error       (catchIOError, isDoesNotExistError)
 
 import qualified System.Win32.Types    as WinAPI
 import qualified System.Win32.Registry as WinAPI
@@ -160,9 +162,20 @@ queryValue keyPath valueName =
             allocaBytes valueSize $ \bufferPtr -> do
                 WinAPI.failUnlessSuccess "RegQueryValueExW" $
                     c_RegQueryValueEx keyHandlePtr valueNamePtr WinAPI.nullPtr valueTypePtr bufferPtr valueSizePtr
-                buffer <- peekArray valueSize bufferPtr
-                valueType <- peek valueTypePtr
-                return (toEnum $ fromIntegral valueType, B.pack buffer)
+                buffer <- B.pack <$> peekArray valueSize bufferPtr
+                valueType <- toEnum . fromIntegral <$> peek valueTypePtr
+                return (valueType, buffer)
+
+queryType :: IsKeyPath a => a -> ValueName -> IO (Either IOError ValueType)
+queryType keyPath valueName =
+    openCloseCatch keyPath $ \keyHandle ->
+    withForeignPtr keyHandle $ \keyHandlePtr ->
+    WinAPI.withTString valueName $ \valueNamePtr ->
+    alloca $ \valueTypePtr -> do
+        WinAPI.failUnlessSuccess "RegQueryValueExW" $
+            c_RegQueryValueEx keyHandlePtr valueNamePtr WinAPI.nullPtr valueTypePtr WinAPI.nullPtr WinAPI.nullPtr
+        valueType <- toEnum . fromIntegral <$> peek valueTypePtr
+        return valueType
 
 data GetValueFlag = RestrictAny
                   | RestrictNone
@@ -207,11 +220,24 @@ getValue keyPath valueName flags =
                 WinAPI.failUnlessSuccess "RegGetValueW" $
                     c_RegGetValue keyHandlePtr WinAPI.nullPtr valueNamePtr rawFlags valueTypePtr bufferPtr valueSizePtr
                 bufferSize <- fromIntegral <$> peek valueSizePtr
-                buffer <- peekArray bufferSize bufferPtr
-                valueType <- peek valueTypePtr
-                return (toEnum $ fromIntegral valueType, B.pack buffer)
+                buffer <- B.pack <$> peekArray bufferSize bufferPtr
+                valueType <- toEnum . fromIntegral <$> peek valueTypePtr
+                return (valueType, buffer)
   where
     rawFlags = fromIntegral $ foldr (.|.) 0 $ map fromEnum flags
+
+getType :: IsKeyPath a => a -> ValueName -> [GetValueFlag] -> IO (Either IOError ValueType)
+getType keyPath valueName flags =
+    openCloseCatch keyPath $ \keyHandle ->
+    withForeignPtr keyHandle $ \keyHandlePtr ->
+    WinAPI.withTString valueName $ \valueNamePtr ->
+    alloca $ \valueTypePtr -> do
+        WinAPI.failUnlessSuccess "RegGetValueW" $
+            c_RegGetValue keyHandlePtr WinAPI.nullPtr valueNamePtr rawFlags valueTypePtr WinAPI.nullPtr WinAPI.nullPtr
+        valueType <- toEnum . fromIntegral <$> peek valueTypePtr
+        return valueType
+  where
+    rawFlags = fromIntegral $ foldr (.|.) 0 $ map fromEnum $ DoNotExpand : flags
 
 getExpandedString :: IsKeyPath a => a -> ValueName -> IO (Either IOError String)
 getExpandedString keyPath valueName = do
@@ -239,6 +265,15 @@ setString keyPath valueName valueData =
 setExpandableString :: IsKeyPath a => a -> ValueName -> String -> IO (Either IOError ())
 setExpandableString keyPath valueName valueData =
     setValue keyPath valueName (TypeExpandableString, encodeString valueData)
+
+setStringPreserveType :: IsKeyPath a => a -> ValueName -> String -> IO (Either IOError ())
+setStringPreserveType keyPath valueName valueData = do
+    valueType <- stringIfMissing <$> getType keyPath valueName [RestrictString, RestrictExpandableString]
+    either (return . Left) (setValue keyPath valueName . (, encodeString valueData)) valueType
+  where
+    stringIfMissing (Left e) | isDoesNotExistError e = Right TypeString
+                             | otherwise = Left e
+    stringIfMissing (Right x) = Right x
 
 deleteValue :: IsKeyPath a => a -> ValueName -> IO (Either IOError ())
 deleteValue keyPath valueName =

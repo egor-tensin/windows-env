@@ -50,7 +50,7 @@ query profile name = Registry.getExpandedString (profileKeyPath profile) name
 engrave :: Profile -> VarName -> VarValue -> IO (Either IOError ())
 engrave profile name value = finally doEngrave notifyEnvironmentUpdate
   where
-    doEngrave = Registry.setExpandableString (profileKeyPath profile) name value
+    doEngrave = Registry.setStringPreserveType (profileKeyPath profile) name value
 
 wipe :: Profile -> VarName -> IO (Either IOError ())
 wipe profile name = finally doWipe notifyEnvironmentUpdate
