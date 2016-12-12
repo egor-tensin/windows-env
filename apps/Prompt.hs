@@ -10,6 +10,8 @@ module Prompt
     ) where
 
 import Control.Monad (void, when)
+import Control.Monad.Trans.Class  (lift)
+import Control.Monad.Trans.Except (ExceptT)
 import Data.Char     (toLower)
 import System.IO     (hFlush, stdout)
 
@@ -34,13 +36,14 @@ promptYesNo msg = do
 promptToContinue :: IO Bool
 promptToContinue = promptYesNo "Continue? (y/n) "
 
-withPrompt :: String -> IO a -> IO Bool
+withPrompt :: String -> ExceptT IOError IO a -> ExceptT IOError IO Bool
 withPrompt msg m = do
-    putStr msg
-    hFlush stdout
-    agreed <- promptToContinue
+    lift $ do
+        putStr msg
+        hFlush stdout
+    agreed <- lift promptToContinue
     when agreed $ void m
     return agreed
 
-withoutPrompt :: IO a -> IO Bool
+withoutPrompt :: ExceptT IOError IO a -> ExceptT IOError IO Bool
 withoutPrompt m = m >> return True

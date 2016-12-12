@@ -7,12 +7,12 @@
 module Main (main) where
 
 import Control.Monad   (void, when)
-import Control.Monad.Trans.Class
-import Control.Monad.Trans.Except
+import Control.Monad.Trans.Except (catchE, runExceptT, throwE)
 import Data.List       (union)
 import System.IO.Error (ioError, isDoesNotExistError)
 
-import           Options.Applicative
+import Options.Applicative
+
 import qualified Windows.Environment as Env
 
 import Prompt
@@ -53,9 +53,7 @@ main = execParser parser >>= addPath
         fullDesc <> progDesc "Add directories to your PATH"
 
 addPath :: Options -> IO ()
-addPath options = do
-    ret <- runExceptT $ doAddPath
-    either ioError return ret
+addPath options = runExceptT doAddPath >>= either ioError return
   where
     varName = optName options
     pathsToAdd = optPaths options
@@ -80,4 +78,4 @@ addPath options = do
                 then withoutPrompt
                 else withPrompt $ engraveMessage profile varName oldValue newValue
             let engrave = Env.engrave profile varName newValue
-            lift $ void $ promptAnd $ runExceptT engrave
+            void $ promptAnd engrave

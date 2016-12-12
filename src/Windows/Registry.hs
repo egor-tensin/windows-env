@@ -35,21 +35,20 @@ module Windows.Registry
     , setStringPreserveType
     ) where
 
+import           Control.Exception     (bracket)
+import           Control.Monad.Trans.Except (ExceptT(..), catchE, throwE)
 import           Data.Bits             ((.|.))
 import qualified Data.ByteString       as B
 import           Data.List             (intercalate)
 import           Data.Maybe            (fromJust)
-import           Data.Tuple            (swap)
 import qualified Data.Text             as T
 import           Data.Text.Encoding    (decodeUtf16LE, encodeUtf16LE)
-import           Control.Exception     (bracket)
-import           Control.Monad.Trans.Except (ExceptT(..), catchE, throwE)
+import           Data.Tuple            (swap)
 import           Foreign.ForeignPtr    (withForeignPtr)
 import           Foreign.Marshal.Alloc (alloca, allocaBytes)
 import           Foreign.Marshal.Array (peekArray, pokeArray)
 import           Foreign.Storable      (peek, poke)
 import           System.IO.Error       (catchIOError, isDoesNotExistError)
-
 import qualified System.Win32.Types    as WinAPI
 import qualified System.Win32.Registry as WinAPI
 

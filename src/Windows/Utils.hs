@@ -8,8 +8,7 @@ module Windows.Utils
     ( notifyEnvironmentUpdate
     ) where
 
-import Foreign.C.Types (CIntPtr(..))
-
+import           Foreign.C.Types          (CIntPtr(..))
 import qualified Graphics.Win32.GDI.Types as WinAPI
 import qualified Graphics.Win32.Message   as WinAPI
 import qualified System.Win32.Types       as WinAPI

@@ -22,8 +22,8 @@ module Windows.Environment
 
 import Control.Monad.Trans.Class  (lift)
 import Control.Monad.Trans.Except (ExceptT(..))
-import Data.List                  (intercalate)
-import Data.List.Split            (splitOn)
+import Data.List       (intercalate)
+import Data.List.Split (splitOn)
 
 import qualified Windows.Registry as Registry
 import           Windows.Utils    (notifyEnvironmentUpdate)

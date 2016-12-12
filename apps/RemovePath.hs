@@ -7,12 +7,12 @@
 module Main (main) where
 
 import Control.Monad   (void, when)
-import Control.Monad.Trans.Class
-import Control.Monad.Trans.Except
+import Control.Monad.Trans.Except (catchE, runExceptT, throwE)
 import Data.List       ((\\))
 import System.IO.Error (ioError, isDoesNotExistError)
 
-import           Options.Applicative
+import Options.Applicative
+
 import qualified Windows.Environment as Env
 
 import Prompt
@@ -53,9 +53,7 @@ main = execParser parser >>= removePath
         fullDesc <> progDesc "Remove directories from your PATH"
 
 removePath :: Options -> IO ()
-removePath options = do
-    ret <- runExceptT $ doRemovePath
-    either ioError return ret
+removePath options = runExceptT doRemovePath >>= either ioError return
   where
     varName = optName options
     pathsToRemove = optPaths options
@@ -64,7 +62,7 @@ removePath options = do
 
     skipPrompt = optYes options
 
-    ignoreMissing e
+    emptyIfMissing e
         | isDoesNotExistError e = return ""
         | otherwise = throwE e
 
@@ -74,10 +72,7 @@ removePath options = do
             removePathFrom Env.AllUsers
 
     removePathFrom profile = do
-        oldValue <- Env.query profile varName `catchE` ignoreMissing
-        doRemovePathFrom profile oldValue
-
-    doRemovePathFrom profile oldValue = do
+        oldValue <- Env.query profile varName `catchE` emptyIfMissing
         let oldPaths = Env.pathSplit oldValue
         let newPaths = oldPaths \\ pathsToRemove
         when (length oldPaths /= length newPaths) $ do
@@ -86,4 +81,4 @@ removePath options = do
                 then withoutPrompt
                 else withPrompt $ engraveMessage profile varName oldValue newValue
             let engrave = Env.engrave profile varName newValue
-            lift $ void $ promptAnd $ runExceptT engrave
+            void $ promptAnd engrave

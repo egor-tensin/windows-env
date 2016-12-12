@@ -11,7 +11,8 @@ import Data.Maybe         (fromMaybe)
 import System.Directory   (doesDirectoryExist)
 import System.Environment (lookupEnv)
 
-import           Options.Applicative
+import Options.Applicative
+
 import qualified Windows.Environment as Env
 
 data WhichPaths = All | ExistingOnly | MissingOnly

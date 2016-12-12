@@ -6,12 +6,12 @@
 
 module Main (main) where
 
-import Control.Monad (void)
-import Control.Monad.Trans.Class
-import Control.Monad.Trans.Except
+import Control.Monad   (void)
+import Control.Monad.Trans.Except (runExceptT)
 import System.IO.Error (ioError)
 
-import           Options.Applicative
+import Options.Applicative
+
 import qualified Windows.Environment as Env
 
 import Prompt
@@ -51,9 +51,7 @@ main = execParser parser >>= setEnv
         fullDesc <> progDesc "Set environment variables"
 
 setEnv :: Options -> IO ()
-setEnv options = do
-    ret <- runExceptT $ lift $ void $ promptAnd $ runExceptT engrave
-    either ioError return ret
+setEnv options = runExceptT doSetEnv >>= either ioError return
   where
     varName = optName options
     varValue = optValue options
@@ -69,3 +67,5 @@ setEnv options = do
         | otherwise  = withPrompt $ engraveMessage profile varName "" varValue
 
     engrave = Env.engrave profile varName varValue
+
+    doSetEnv = void $ promptAnd engrave
