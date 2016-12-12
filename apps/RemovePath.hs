@@ -7,6 +7,8 @@
 module Main (main) where
 
 import Control.Monad   (void, when)
+import Control.Monad.Trans.Class
+import Control.Monad.Trans.Except
 import Data.List       ((\\))
 import System.IO.Error (ioError, isDoesNotExistError)
 
@@ -52,9 +54,8 @@ main = execParser parser >>= removePath
 
 removePath :: Options -> IO ()
 removePath options = do
-    removePathFrom Env.CurrentUser
-    when forAllUsers $
-        removePathFrom Env.AllUsers
+    ret <- runExceptT $ doRemovePath
+    either ioError return ret
   where
     varName = optName options
     pathsToRemove = optPaths options
@@ -63,13 +64,18 @@ removePath options = do
 
     skipPrompt = optYes options
 
-    removePathFrom profile = do
-        oldValue <- Env.query profile varName
-        either ignoreMissing (doRemovePathFrom profile) oldValue
-
     ignoreMissing e
-        | isDoesNotExistError e = return ()
-        | otherwise = ioError e
+        | isDoesNotExistError e = return ""
+        | otherwise = throwE e
+
+    doRemovePath = do
+        removePathFrom Env.CurrentUser
+        when forAllUsers $
+            removePathFrom Env.AllUsers
+
+    removePathFrom profile = do
+        oldValue <- Env.query profile varName `catchE` ignoreMissing
+        doRemovePathFrom profile oldValue
 
     doRemovePathFrom profile oldValue = do
         let oldPaths = Env.pathSplit oldValue
@@ -80,4 +86,4 @@ removePath options = do
                 then withoutPrompt
                 else withPrompt $ engraveMessage profile varName oldValue newValue
             let engrave = Env.engrave profile varName newValue
-            void $ promptAnd engrave
+            lift $ void $ promptAnd $ runExceptT engrave

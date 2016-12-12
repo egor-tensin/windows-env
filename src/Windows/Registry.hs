@@ -6,8 +6,6 @@
 --
 -- Low-level utility functions for reading and writing registry values.
 
-{-# OPTIONS_GHC -XTupleSections #-}
-
 module Windows.Registry
     ( IsKeyPath(..)
     , RootKey(..)
@@ -45,6 +43,7 @@ import           Data.Tuple            (swap)
 import qualified Data.Text             as T
 import           Data.Text.Encoding    (decodeUtf16LE, encodeUtf16LE)
 import           Control.Exception     (bracket)
+import           Control.Monad.Trans.Except (ExceptT(..), catchE, throwE)
 import           Foreign.ForeignPtr    (withForeignPtr)
 import           Foreign.Marshal.Alloc (alloca, allocaBytes)
 import           Foreign.Marshal.Array (peekArray, pokeArray)
@@ -138,10 +137,10 @@ decodeString (_, bytes) = T.unpack dropLastZero
                  | T.last text == '\0' = T.init text
                  | otherwise = text
 
-openCloseCatch :: IsKeyPath a => a -> (Handle -> IO b) -> IO (Either IOError b)
-openCloseCatch keyPath f = catchIOError (fmap Right openClose) $ return . Left
+openCloseCatch :: IsKeyPath a => a -> (Handle -> IO b) -> ExceptT IOError IO b
+openCloseCatch keyPath f = ExceptT $ catchIOError (openApplyClose >>= return . Right) $ return . Left
   where
-    openClose = bracket (openUnsafe keyPath) close f
+    openApplyClose = bracket (openUnsafe keyPath) close f
 
 foreign import ccall unsafe "Windows.h RegQueryValueExW"
     c_RegQueryValueEx :: WinAPI.PKEY -> WinAPI.LPCTSTR -> WinAPI.LPDWORD -> WinAPI.LPDWORD -> WinAPI.LPBYTE -> WinAPI.LPDWORD -> IO WinAPI.ErrCode
@@ -152,7 +151,7 @@ foreign import ccall unsafe "Windows.h RegSetValueExW"
 foreign import ccall unsafe "Windows.h RegGetValueW"
     c_RegGetValue :: WinAPI.PKEY -> WinAPI.LPCTSTR -> WinAPI.LPCTSTR -> WinAPI.DWORD -> WinAPI.LPDWORD -> WinAPI.LPBYTE -> WinAPI.LPDWORD -> IO WinAPI.ErrCode
 
-queryValue :: IsKeyPath a => a -> ValueName -> IO (Either IOError ValueData)
+queryValue :: IsKeyPath a => a -> ValueName -> ExceptT IOError IO ValueData
 queryValue keyPath valueName =
     openCloseCatch keyPath $ \keyHandle ->
     withForeignPtr keyHandle $ \keyHandlePtr ->
@@ -170,7 +169,7 @@ queryValue keyPath valueName =
                 valueType <- toEnum . fromIntegral <$> peek valueTypePtr
                 return (valueType, buffer)
 
-queryType :: IsKeyPath a => a -> ValueName -> IO (Either IOError ValueType)
+queryType :: IsKeyPath a => a -> ValueName -> ExceptT IOError IO ValueType
 queryType keyPath valueName =
     openCloseCatch keyPath $ \keyHandle ->
     withForeignPtr keyHandle $ \keyHandlePtr ->
@@ -209,7 +208,7 @@ getValueFlagsTable =
     , (DoNotExpand,    0x10000000)
     ]
 
-getValue :: IsKeyPath a => a -> ValueName -> [GetValueFlag] -> IO (Either IOError ValueData)
+getValue :: IsKeyPath a => a -> ValueName -> [GetValueFlag] -> ExceptT IOError IO ValueData
 getValue keyPath valueName flags =
     openCloseCatch keyPath $ \keyHandle ->
     withForeignPtr keyHandle $ \keyHandlePtr ->
@@ -230,7 +229,7 @@ getValue keyPath valueName flags =
   where
     rawFlags = fromIntegral $ foldr (.|.) 0 $ map fromEnum flags
 
-getType :: IsKeyPath a => a -> ValueName -> [GetValueFlag] -> IO (Either IOError ValueType)
+getType :: IsKeyPath a => a -> ValueName -> [GetValueFlag] -> ExceptT IOError IO ValueType
 getType keyPath valueName flags =
     openCloseCatch keyPath $ \keyHandle ->
     withForeignPtr keyHandle $ \keyHandlePtr ->
@@ -243,12 +242,12 @@ getType keyPath valueName flags =
   where
     rawFlags = fromIntegral $ foldr (.|.) 0 $ map fromEnum $ DoNotExpand : flags
 
-getExpandedString :: IsKeyPath a => a -> ValueName -> IO (Either IOError String)
+getExpandedString :: IsKeyPath a => a -> ValueName -> ExceptT IOError IO String
 getExpandedString keyPath valueName = do
     valueData <- getValue keyPath valueName [RestrictString, RestrictExpandableString]
-    return $ fmap decodeString valueData
+    return $ decodeString valueData
 
-setValue :: IsKeyPath a => a -> ValueName -> ValueData -> IO (Either IOError ())
+setValue :: IsKeyPath a => a -> ValueName -> ValueData -> ExceptT IOError IO ()
 setValue keyPath valueName (valueType, valueData) =
     openCloseCatch keyPath $ \keyHandle ->
     withForeignPtr keyHandle $ \keyHandlePtr ->
@@ -262,24 +261,23 @@ setValue keyPath valueName (valueType, valueData) =
     buffer = B.unpack valueData
     bufferSize = B.length valueData
 
-setString :: IsKeyPath a => a -> ValueName -> String -> IO (Either IOError ())
+setString :: IsKeyPath a => a -> ValueName -> String -> ExceptT IOError IO ()
 setString keyPath valueName valueData =
     setValue keyPath valueName (TypeString, encodeString valueData)
 
-setExpandableString :: IsKeyPath a => a -> ValueName -> String -> IO (Either IOError ())
+setExpandableString :: IsKeyPath a => a -> ValueName -> String -> ExceptT IOError IO ()
 setExpandableString keyPath valueName valueData =
     setValue keyPath valueName (TypeExpandableString, encodeString valueData)
 
-setStringPreserveType :: IsKeyPath a => a -> ValueName -> String -> IO (Either IOError ())
+setStringPreserveType :: IsKeyPath a => a -> ValueName -> String -> ExceptT IOError IO ()
 setStringPreserveType keyPath valueName valueData = do
-    valueType <- stringIfMissing <$> getType keyPath valueName [RestrictString, RestrictExpandableString]
-    either (return . Left) (setValue keyPath valueName . (, encodeString valueData)) valueType
+    valueType <- getType keyPath valueName [RestrictString, RestrictExpandableString] `catchE` stringByDefault
+    setValue keyPath valueName (valueType, encodeString valueData)
   where
-    stringIfMissing (Left e) | isDoesNotExistError e = Right TypeString
-                             | otherwise = Left e
-    stringIfMissing (Right x) = Right x
+    stringByDefault e | isDoesNotExistError e = return TypeString
+                      | otherwise = throwE e
 
-deleteValue :: IsKeyPath a => a -> ValueName -> IO (Either IOError ())
+deleteValue :: IsKeyPath a => a -> ValueName -> ExceptT IOError IO ()
 deleteValue keyPath valueName =
     openCloseCatch keyPath $ \keyHandle ->
     withForeignPtr keyHandle $ \keyHandlePtr ->

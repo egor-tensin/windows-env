@@ -20,9 +20,10 @@ module Windows.Environment
     , pathSplit
     ) where
 
-import Control.Exception (finally)
-import Data.List         (intercalate)
-import Data.List.Split   (splitOn)
+import Control.Monad.Trans.Class  (lift)
+import Control.Monad.Trans.Except (ExceptT(..))
+import Data.List                  (intercalate)
+import Data.List.Split            (splitOn)
 
 import qualified Windows.Registry as Registry
 import           Windows.Utils    (notifyEnvironmentUpdate)
@@ -44,18 +45,20 @@ profileKeyPath AllUsers    = Registry.KeyPath Registry.LocalMachine
 type VarName  = String
 type VarValue = String
 
-query :: Profile -> VarName -> IO (Either IOError VarValue)
+query :: Profile -> VarName -> ExceptT IOError IO VarValue
 query profile name = Registry.getExpandedString (profileKeyPath profile) name
 
-engrave :: Profile -> VarName -> VarValue -> IO (Either IOError ())
-engrave profile name value = finally doEngrave notifyEnvironmentUpdate
-  where
-    doEngrave = Registry.setStringPreserveType (profileKeyPath profile) name value
+engrave :: Profile -> VarName -> VarValue -> ExceptT IOError IO ()
+engrave profile name value = do
+    ret <- Registry.setStringPreserveType (profileKeyPath profile) name value
+    lift notifyEnvironmentUpdate
+    return ret
 
-wipe :: Profile -> VarName -> IO (Either IOError ())
-wipe profile name = finally doWipe notifyEnvironmentUpdate
-  where
-    doWipe = Registry.deleteValue (profileKeyPath profile) name
+wipe :: Profile -> VarName -> ExceptT IOError IO ()
+wipe profile name = do
+    ret <- Registry.deleteValue (profileKeyPath profile) name
+    lift notifyEnvironmentUpdate
+    return ret
 
 pathSep :: VarValue
 pathSep = ";"

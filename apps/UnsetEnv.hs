@@ -7,6 +7,9 @@
 module Main (main) where
 
 import Control.Monad (void)
+import Control.Monad.Trans.Class
+import Control.Monad.Trans.Except
+import System.IO.Error (ioError)
 
 import           Options.Applicative
 import qualified Windows.Environment as Env
@@ -43,7 +46,9 @@ main = execParser parser >>= unsetEnv
         fullDesc <> progDesc "Unset environment variables"
 
 unsetEnv :: Options -> IO ()
-unsetEnv options = void $ promptAnd wipe
+unsetEnv options = do
+    ret <- runExceptT $ lift $ void $ promptAnd $ runExceptT wipe
+    either ioError return ret
   where
     varName = optName options
 

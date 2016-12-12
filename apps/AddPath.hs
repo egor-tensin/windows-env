@@ -7,6 +7,8 @@
 module Main (main) where
 
 import Control.Monad   (void, when)
+import Control.Monad.Trans.Class
+import Control.Monad.Trans.Except
 import Data.List       (union)
 import System.IO.Error (ioError, isDoesNotExistError)
 
@@ -52,16 +54,8 @@ main = execParser parser >>= addPath
 
 addPath :: Options -> IO ()
 addPath options = do
-    oldValue <- Env.query profile varName >>= emptyIfMissing
-    let oldPaths = Env.pathSplit oldValue
-    let newPaths = oldPaths `union` pathsToAdd
-    when (length oldPaths /= length newPaths) $ do
-        let newValue = Env.pathJoin newPaths
-        let promptAnd = if skipPrompt
-            then withoutPrompt
-            else withPrompt $ engraveMessage profile varName oldValue newValue
-        let engrave = Env.engrave profile varName newValue
-        void $ promptAnd engrave
+    ret <- runExceptT $ doAddPath
+    either ioError return ret
   where
     varName = optName options
     pathsToAdd = optPaths options
@@ -73,7 +67,17 @@ addPath options = do
 
     skipPrompt = optYes options
 
-    emptyIfMissing (Left e)
-        | isDoesNotExistError e = return ""
-        | otherwise = ioError e
-    emptyIfMissing (Right s) = return s
+    emptyIfMissing e | isDoesNotExistError e = return ""
+                     | otherwise = throwE e
+
+    doAddPath = do
+        oldValue <- Env.query profile varName `catchE` emptyIfMissing
+        let oldPaths = Env.pathSplit oldValue
+        let newPaths = oldPaths `union` pathsToAdd
+        when (length oldPaths /= length newPaths) $ do
+            let newValue = Env.pathJoin newPaths
+            let promptAnd = if skipPrompt
+                then withoutPrompt
+                else withPrompt $ engraveMessage profile varName oldValue newValue
+            let engrave = Env.engrave profile varName newValue
+            lift $ void $ promptAnd $ runExceptT engrave
