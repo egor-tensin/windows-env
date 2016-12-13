@@ -123,7 +123,7 @@ Assign `bar` to the variable `foo` in the global environment:
 ```
 > setenv --global foo bar
 Saving variable 'foo' to 'HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Environment'...
-        Value: bar
+        New value: bar
 Continue? (y/n) y
 ```
 
