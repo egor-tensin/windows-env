@@ -14,6 +14,7 @@ module Windows.Environment
     , VarValue
     , query
     , engrave
+    , engraveForce
     , wipe
 
     , pathJoin
@@ -51,6 +52,12 @@ query profile name = Registry.getExpandedString (profileKeyPath profile) name
 engrave :: Profile -> VarName -> VarValue -> ExceptT IOError IO ()
 engrave profile name value = do
     ret <- Registry.setStringPreserveType (profileKeyPath profile) name value
+    lift notifyEnvironmentUpdate
+    return ret
+
+engraveForce :: Profile -> VarName -> VarValue -> ExceptT IOError IO ()
+engraveForce profile name value = do
+    ret <- Registry.setString (profileKeyPath profile) name value
     lift notifyEnvironmentUpdate
     return ret
 

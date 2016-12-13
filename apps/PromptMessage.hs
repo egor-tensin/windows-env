@@ -5,7 +5,8 @@
 -- Stability   : experimental
 
 module PromptMessage
-    ( engraveMessage
+    ( oldNewMessage
+    , newMessage
     , wipeMessage
     ) where
 
@@ -13,15 +14,21 @@ import Text.Printf (printf)
 
 import qualified Windows.Environment as Env
 
-engraveMessage :: Env.Profile -> Env.VarName -> Env.VarValue -> Env.VarValue -> String
-engraveMessage profile name oldValue newValue =
-    descriptionMsg ++ oldValueMsg ++ newValueMsg
+oldNewMessage :: Env.Profile -> Env.VarName -> Env.VarValue -> Env.VarValue -> String
+oldNewMessage profile name oldValue newValue =
+    descrMsg ++ oldValueMsg ++ newValueMsg
   where
     profileKey = Env.profileKeyPath profile
-
-    descriptionMsg = printf "Saving variable '%s' to '%s'...\n" name (show profileKey)
-
+    descrMsg = printf "Saving variable '%s' to '%s'...\n" name (show profileKey)
     oldValueMsg = printf "\tOld value: %s\n" oldValue
+    newValueMsg = printf "\tNew value: %s\n" newValue
+
+newMessage :: Env.Profile -> Env.VarName -> Env.VarValue -> String
+newMessage profile name newValue =
+    descrMsg ++ newValueMsg
+  where
+    profileKey = Env.profileKeyPath profile
+    descrMsg = printf "Saving variable '%s' to '%s'...\n" name (show profileKey)
     newValueMsg = printf "\tNew value: %s\n" newValue
 
 wipeMessage :: Env.Profile -> Env.VarName -> String

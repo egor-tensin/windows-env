@@ -76,6 +76,6 @@ addPath options = runExceptT doAddPath >>= either ioError return
             let newValue = Env.pathJoin newPaths
             let promptAnd = if skipPrompt
                 then withoutPrompt
-                else withPrompt $ engraveMessage profile varName oldValue newValue
+                else withPrompt $ oldNewMessage profile varName oldValue newValue
             let engrave = Env.engrave profile varName newValue
             void $ promptAnd engrave

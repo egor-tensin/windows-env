@@ -64,8 +64,8 @@ setEnv options = runExceptT doSetEnv >>= either ioError return
     skipPrompt = optYes options
     promptAnd
         | skipPrompt = withoutPrompt
-        | otherwise  = withPrompt $ engraveMessage profile varName "" varValue
+        | otherwise  = withPrompt $ newMessage profile varName varValue
 
-    engrave = Env.engrave profile varName varValue
+    engrave = Env.engraveForce profile varName varValue
 
     doSetEnv = void $ promptAnd engrave
