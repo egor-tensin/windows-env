@@ -133,7 +133,7 @@ decodeString (_, bytes) = T.unpack dropLastZero
   where
     text = decodeUtf16LE bytes
     dropLastZero | T.null text = text
-                 | otherwise = T.dropWhileEnd (== '\0') text
+                 | otherwise = T.takeWhile (/= '\0') text
 
 openCloseCatch :: IsKeyPath a => a -> (Handle -> IO b) -> ExceptT IOError IO b
 openCloseCatch keyPath f = ExceptT $ catchIOError (openApplyClose >>= return . Right) $ return . Left
