@@ -1,7 +1,8 @@
 resolver: lts-7.11
 packages:
 - .
-- https://github.com/haskell/win32/archive/bf54fa7134eb9b1366f827426f050d833b2cda54.zip
+- location: https://github.com/haskell/win32/archive/bf54fa7134eb9b1366f827426f050d833b2cda54.zip
+  extra-dep: true
 extra-deps: []
 flags: {}
 extra-package-dbs: []
