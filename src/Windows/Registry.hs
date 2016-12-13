@@ -242,7 +242,7 @@ getType keyPath valueName flags =
 
 getExpandedString :: IsKeyPath a => a -> ValueName -> ExceptT IOError IO String
 getExpandedString keyPath valueName = do
-    valueData <- getValue keyPath valueName [RestrictString, RestrictExpandableString]
+    valueData <- getValue keyPath valueName [RestrictString]
     return $ decodeString valueData
 
 setValue :: IsKeyPath a => a -> ValueName -> ValueData -> ExceptT IOError IO ()
