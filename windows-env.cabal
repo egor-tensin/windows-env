@@ -39,7 +39,7 @@ executable addpath
 
 executable paths
   hs-source-dirs:      apps
-  main-is:             ListPath.hs
+  main-is:             ListPaths.hs
   other-modules:       Prompt, PromptMessage
   ghc-options:         -Wall -Werror -threaded -rtsopts -with-rtsopts=-N
   build-depends:       base, directory
