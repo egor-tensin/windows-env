@@ -48,7 +48,7 @@ main :: IO ()
 main = execParser parser >>= setEnv
   where
     parser = info (helper <*> optionParser) $
-        fullDesc <> progDesc "Set environment variables"
+        fullDesc <> progDesc "Define environment variables"
 
 setEnv :: Options -> IO ()
 setEnv options = runExceptT doSetEnv >>= either ioError return

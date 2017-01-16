@@ -61,7 +61,16 @@ close :: Handle -> IO ()
 close = WinAPI.regCloseKey
 
 open :: IsKeyPath a => a -> IO (Either IOError Handle)
-open a = catchIOError (Right <$> openUnsafe a) $ return . Left
+open keyPath = catchIOError doOpen wrapError
+  where
+    doOpen = Right <$> openUnsafe keyPath
+    wrapError = return . Left
+
+withHandle :: IsKeyPath a => a -> (Handle -> IO b) -> ExceptT IOError IO b
+withHandle keyPath f = ExceptT $ catchIOError doStuff wrapError
+  where
+    doStuff = Right <$> bracket (openUnsafe keyPath) close f
+    wrapError = return . Left
 
 data RootKey = CurrentUser
              | LocalMachine
@@ -123,22 +132,19 @@ type ValueData = (ValueType, B.ByteString)
 encodeString :: String -> B.ByteString
 encodeString str = encodeUtf16LE addLastZero
   where
+    addLastZero
+        | T.null text = text
+        | T.last text == '\0' = text
+        | otherwise = T.snoc text '\0'
     text = T.pack str
-    addLastZero | T.null text = text
-                | T.last text == '\0' = text
-                | otherwise = T.snoc text '\0'
 
 decodeString :: ValueData -> String
 decodeString (_, bytes) = T.unpack dropLastZero
   where
+    dropLastZero
+        | T.null text = text
+        | otherwise = T.takeWhile (/= '\0') text
     text = decodeUtf16LE bytes
-    dropLastZero | T.null text = text
-                 | otherwise = T.takeWhile (/= '\0') text
-
-openCloseCatch :: IsKeyPath a => a -> (Handle -> IO b) -> ExceptT IOError IO b
-openCloseCatch keyPath f = ExceptT $ catchIOError (fmap Right openApplyClose) (return . Left)
-  where
-    openApplyClose = bracket (openUnsafe keyPath) close f
 
 foreign import ccall unsafe "Windows.h RegQueryValueExW"
     c_RegQueryValueEx :: WinAPI.PKEY -> WinAPI.LPCTSTR -> WinAPI.LPDWORD -> WinAPI.LPDWORD -> WinAPI.LPBYTE -> WinAPI.LPDWORD -> IO WinAPI.ErrCode
@@ -151,7 +157,7 @@ foreign import ccall unsafe "Windows.h RegGetValueW"
 
 queryValue :: IsKeyPath a => a -> ValueName -> ExceptT IOError IO ValueData
 queryValue keyPath valueName =
-    openCloseCatch keyPath $ \keyHandle ->
+    withHandle keyPath $ \keyHandle ->
     withForeignPtr keyHandle $ \keyHandlePtr ->
     WinAPI.withTString valueName $ \valueNamePtr ->
     alloca $ \valueSizePtr -> do
@@ -169,7 +175,7 @@ queryValue keyPath valueName =
 
 queryType :: IsKeyPath a => a -> ValueName -> ExceptT IOError IO ValueType
 queryType keyPath valueName =
-    openCloseCatch keyPath $ \keyHandle ->
+    withHandle keyPath $ \keyHandle ->
     withForeignPtr keyHandle $ \keyHandlePtr ->
     WinAPI.withTString valueName $ \valueNamePtr ->
     alloca $ \valueTypePtr -> do
@@ -207,7 +213,7 @@ getValueFlagsTable =
 
 getValue :: IsKeyPath a => a -> ValueName -> [GetValueFlag] -> ExceptT IOError IO ValueData
 getValue keyPath valueName flags =
-    openCloseCatch keyPath $ \keyHandle ->
+    withHandle keyPath $ \keyHandle ->
     withForeignPtr keyHandle $ \keyHandlePtr ->
     WinAPI.withTString valueName $ \valueNamePtr ->
     alloca $ \valueSizePtr -> do
@@ -228,7 +234,7 @@ getValue keyPath valueName flags =
 
 getType :: IsKeyPath a => a -> ValueName -> [GetValueFlag] -> ExceptT IOError IO ValueType
 getType keyPath valueName flags =
-    openCloseCatch keyPath $ \keyHandle ->
+    withHandle keyPath $ \keyHandle ->
     withForeignPtr keyHandle $ \keyHandlePtr ->
     WinAPI.withTString valueName $ \valueNamePtr ->
     alloca $ \valueTypePtr -> do
@@ -245,7 +251,7 @@ getExpandedString keyPath valueName = do
 
 setValue :: IsKeyPath a => a -> ValueName -> ValueData -> ExceptT IOError IO ()
 setValue keyPath valueName (valueType, valueData) =
-    openCloseCatch keyPath $ \keyHandle ->
+    withHandle keyPath $ \keyHandle ->
     withForeignPtr keyHandle $ \keyHandlePtr ->
     WinAPI.withTString valueName $ \valueNamePtr ->
     allocaBytes bufferSize $ \bufferPtr -> do
@@ -267,16 +273,17 @@ setExpandableString keyPath valueName valueData =
 
 setStringPreserveType :: IsKeyPath a => a -> ValueName -> String -> ExceptT IOError IO ()
 setStringPreserveType keyPath valueName valueData = do
-    valueType <- getType keyPath valueName [RestrictString, RestrictExpandableString] `catchE` stringByDefault
+    valueType <- getType keyPath valueName flags `catchE` stringByDefault
     setValue keyPath valueName (valueType, encodeString valueData)
   where
+    flags = [RestrictString, RestrictExpandableString]
     stringByDefault e
         | isDoesNotExistError e = return TypeString
         | otherwise = throwE e
 
 deleteValue :: IsKeyPath a => a -> ValueName -> ExceptT IOError IO ()
 deleteValue keyPath valueName =
-    openCloseCatch keyPath $ \keyHandle ->
+    withHandle keyPath $ \keyHandle ->
     withForeignPtr keyHandle $ \keyHandlePtr ->
     WinAPI.withTString valueName $ \valueNamePtr ->
     WinAPI.failUnlessSuccess "RegDeleteValueW" $

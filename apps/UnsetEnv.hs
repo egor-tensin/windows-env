@@ -43,7 +43,7 @@ main :: IO ()
 main = execParser parser >>= unsetEnv
   where
     parser = info (helper <*> optionParser) $
-        fullDesc <> progDesc "Unset environment variables"
+        fullDesc <> progDesc "Delete environment variables"
 
 unsetEnv :: Options -> IO ()
 unsetEnv options = runExceptT doUnsetEnv >>= either ioError return
