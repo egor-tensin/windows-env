@@ -65,8 +65,9 @@ addPath options = runExceptT doAddPath >>= either ioError return
 
     skipPrompt = optYes options
 
-    emptyIfMissing e | isDoesNotExistError e = return ""
-                     | otherwise = throwE e
+    emptyIfMissing e
+        | isDoesNotExistError e = return ""
+        | otherwise = throwE e
 
     doAddPath = do
         oldValue <- Env.query profile varName `catchE` emptyIfMissing

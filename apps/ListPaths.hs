@@ -57,13 +57,13 @@ optionParser = Options
             <> help "List global (all users') paths only")
 
 main :: IO ()
-main = execParser parser >>= listPath
+main = execParser parser >>= listPaths
   where
     parser = info (helper <*> optionParser) $
         fullDesc <> progDesc "List directories in your PATH"
 
-listPath :: Options -> IO ()
-listPath options = runExceptT doListPath >>= either ioError return
+listPaths :: Options -> IO ()
+listPaths options = runExceptT doListPaths >>= either ioError return
   where
     varName = optName options
     whichPaths = optWhichPaths options
@@ -74,9 +74,10 @@ listPath options = runExceptT doListPath >>= either ioError return
     queryFrom Environment = lift $ fromMaybe "" <$> lookupEnv varName
     queryFrom (Registry profile) = Env.query profile varName
 
-    doListPath = do
-        paths <- query
-        lift $ printPaths $ Env.pathSplit paths
+    filterPaths = filterM $ shouldListPath whichPaths
 
-    printPaths paths =
-        filterM (shouldListPath whichPaths) paths >>= mapM_ putStrLn
+    doListPaths = do
+        paths <- Env.pathSplit <$> query
+        lift $ do
+            pathsToPrint <- filterPaths paths
+            mapM_ putStrLn pathsToPrint

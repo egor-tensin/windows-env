@@ -136,7 +136,7 @@ decodeString (_, bytes) = T.unpack dropLastZero
                  | otherwise = T.takeWhile (/= '\0') text
 
 openCloseCatch :: IsKeyPath a => a -> (Handle -> IO b) -> ExceptT IOError IO b
-openCloseCatch keyPath f = ExceptT $ catchIOError (openApplyClose >>= return . Right) $ return . Left
+openCloseCatch keyPath f = ExceptT $ catchIOError (fmap Right openApplyClose) (return . Left)
   where
     openApplyClose = bracket (openUnsafe keyPath) close f
 
@@ -175,8 +175,7 @@ queryType keyPath valueName =
     alloca $ \valueTypePtr -> do
         WinAPI.failUnlessSuccess "RegQueryValueExW" $
             c_RegQueryValueEx keyHandlePtr valueNamePtr WinAPI.nullPtr valueTypePtr WinAPI.nullPtr WinAPI.nullPtr
-        valueType <- toEnum . fromIntegral <$> peek valueTypePtr
-        return valueType
+        toEnum . fromIntegral <$> peek valueTypePtr
 
 data GetValueFlag = RestrictAny
                   | RestrictNone
@@ -225,7 +224,7 @@ getValue keyPath valueName flags =
                 valueType <- toEnum . fromIntegral <$> peek valueTypePtr
                 return (valueType, buffer)
   where
-    rawFlags = fromIntegral $ foldr (.|.) 0 $ map fromEnum flags
+    rawFlags = fromIntegral $ foldr ((.|.) . fromEnum) 0 flags
 
 getType :: IsKeyPath a => a -> ValueName -> [GetValueFlag] -> ExceptT IOError IO ValueType
 getType keyPath valueName flags =
@@ -235,10 +234,9 @@ getType keyPath valueName flags =
     alloca $ \valueTypePtr -> do
         WinAPI.failUnlessSuccess "RegGetValueW" $
             c_RegGetValue keyHandlePtr WinAPI.nullPtr valueNamePtr rawFlags valueTypePtr WinAPI.nullPtr WinAPI.nullPtr
-        valueType <- toEnum . fromIntegral <$> peek valueTypePtr
-        return valueType
+        toEnum . fromIntegral <$> peek valueTypePtr
   where
-    rawFlags = fromIntegral $ foldr (.|.) 0 $ map fromEnum $ DoNotExpand : flags
+    rawFlags = fromIntegral $ foldr ((.|.) . fromEnum) 0 (DoNotExpand : flags)
 
 getExpandedString :: IsKeyPath a => a -> ValueName -> ExceptT IOError IO String
 getExpandedString keyPath valueName = do
@@ -272,8 +270,9 @@ setStringPreserveType keyPath valueName valueData = do
     valueType <- getType keyPath valueName [RestrictString, RestrictExpandableString] `catchE` stringByDefault
     setValue keyPath valueName (valueType, encodeString valueData)
   where
-    stringByDefault e | isDoesNotExistError e = return TypeString
-                      | otherwise = throwE e
+    stringByDefault e
+        | isDoesNotExistError e = return TypeString
+        | otherwise = throwE e
 
 deleteValue :: IsKeyPath a => a -> ValueName -> ExceptT IOError IO ()
 deleteValue keyPath valueName =
