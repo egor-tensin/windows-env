@@ -13,7 +13,7 @@ module PromptMessage
 
 import Text.Printf (printf)
 
-import qualified Windows.Environment as Env
+import qualified WindowsEnv.Environment as Env
 
 oldNewMessage :: Env.Profile -> Env.VarName -> Env.VarValue -> Env.VarValue -> String
 oldNewMessage profile name oldValue newValue =

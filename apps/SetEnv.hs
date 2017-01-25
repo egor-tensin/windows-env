@@ -13,7 +13,7 @@ import System.IO.Error (ioError)
 
 import Options.Applicative
 
-import qualified Windows.Environment as Env
+import qualified WindowsEnv.Environment as Env
 
 import Prompt
 import PromptMessage

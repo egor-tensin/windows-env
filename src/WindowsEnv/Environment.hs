@@ -8,7 +8,7 @@
 --
 -- High-level functions for reading and writing Windows environment variables.
 
-module Windows.Environment
+module WindowsEnv.Environment
     ( Profile(..)
     , profileKeyPath
 
@@ -28,8 +28,8 @@ import Control.Monad.Trans.Except (ExceptT(..))
 import Data.List       (intercalate)
 import Data.List.Split (splitOn)
 
-import qualified Windows.Registry as Registry
-import           Windows.Utils    (notifyEnvironmentUpdate)
+import qualified WindowsEnv.Registry as Registry
+import           WindowsEnv.Utils    (notifyEnvironmentUpdate)
 
 data Profile = CurrentUser
              | AllUsers

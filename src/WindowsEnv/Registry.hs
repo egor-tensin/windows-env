@@ -8,7 +8,7 @@
 --
 -- Lower-level functions for reading and writing registry values.
 
-module Windows.Registry
+module WindowsEnv.Registry
     ( IsKeyPath(..)
     , RootKey(..)
     , KeyPath(..)

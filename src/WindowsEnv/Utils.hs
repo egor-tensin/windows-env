@@ -5,7 +5,7 @@
 -- Stability   : experimental
 -- Portability : Windows-only
 
-module Windows.Utils
+module WindowsEnv.Utils
     ( notifyEnvironmentUpdate
     ) where
 
