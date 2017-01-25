@@ -23,7 +23,7 @@ library
                      , split
                      , text
                      , transformers
-                     , Win32
+                     , Win32 >= 2.4
   default-language:    Haskell2010
 
 executable addpath
