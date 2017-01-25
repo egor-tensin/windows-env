@@ -1,6 +1,6 @@
-name:          windows-env
-version:       0.1.0.0
-synopsis:      Manage Windows environment variables
+name:               windows-env
+version:            0.1.0.0
+synopsis:           Manage Windows environment variables
 description:
   The only value this package currently provides is the bundled applications.
   The library currently lacks documentation, and hence is more or less
@@ -9,16 +9,16 @@ description:
   See the list of applications and their descriptions in README.md.
   Alternatively, visit the homepage at
   <https://github.com/egor-tensin/windows-env>.
-homepage:      https://github.com/egor-tensin/windows-env
-license:       MIT
-license-file:  LICENSE.txt
-author:        Egor Tensin
-maintainer:    Egor.Tensin@gmail.com
-copyright:     (c) 2015 Egor Tensin <Egor.Tensin@gmail.com>
-category:      System
-build-type:    Simple
--- extra-source-files:
-cabal-version: >=1.10
+homepage:           https://github.com/egor-tensin/windows-env
+license:            MIT
+license-file:       LICENSE.txt
+author:             Egor Tensin
+maintainer:         Egor.Tensin@gmail.com
+copyright:          (c) 2015 Egor Tensin <Egor.Tensin@gmail.com>
+category:           System
+build-type:         Simple
+extra-source-files: README.md
+cabal-version:      >=1.10
 
 library
   hs-source-dirs:     src
