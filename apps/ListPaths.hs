@@ -17,21 +17,21 @@ import System.IO.Error    (ioError)
 
 import Options.Applicative
 
-import qualified WindowsEnv.Environment as Env
+import qualified WindowsEnv
 
 data WhichPaths = All | ExistingOnly | MissingOnly
                 deriving (Eq, Show)
 
-shouldListPath :: WhichPaths -> Env.VarValue -> IO Bool
+shouldListPath :: WhichPaths -> WindowsEnv.VarValue -> IO Bool
 shouldListPath All = return . const True
 shouldListPath ExistingOnly = doesDirectoryExist
 shouldListPath MissingOnly  = fmap not . doesDirectoryExist
 
-data Source = Environment | Registry Env.Profile
+data Source = Environment | Registry WindowsEnv.Profile
             deriving (Eq, Show)
 
 data Options = Options
-    { optName       :: Env.VarName
+    { optName       :: WindowsEnv.VarName
     , optWhichPaths :: WhichPaths
     , optSource     :: Source
     } deriving (Eq, Show)
@@ -52,9 +52,9 @@ optionParser = Options
         <|> flag' MissingOnly (long "missing" <> short 'm'
             <> help "List missing paths only")
     optSourceDesc = pure Environment
-        <|> flag' (Registry Env.CurrentUser) (long "user" <> short 'u'
+        <|> flag' (Registry WindowsEnv.CurrentUser) (long "user" <> short 'u'
             <> help "List current user's paths only")
-        <|> flag' (Registry Env.AllUsers) (long "global" <> short 'g'
+        <|> flag' (Registry WindowsEnv.AllUsers) (long "global" <> short 'g'
             <> help "List global (all users') paths only")
 
 main :: IO ()
@@ -73,12 +73,12 @@ listPaths options = runExceptT doListPaths >>= either ioError return
     query = queryFrom source
 
     queryFrom Environment = lift $ fromMaybe "" <$> lookupEnv varName
-    queryFrom (Registry profile) = Env.query profile varName
+    queryFrom (Registry profile) = WindowsEnv.query profile varName
 
     filterPaths = filterM $ shouldListPath whichPaths
 
     doListPaths = do
-        paths <- Env.pathSplit <$> query
+        paths <- WindowsEnv.pathSplit <$> query
         lift $ do
             pathsToPrint <- filterPaths paths
             mapM_ putStrLn pathsToPrint

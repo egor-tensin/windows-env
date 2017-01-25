@@ -13,7 +13,7 @@ import System.IO.Error (ioError)
 
 import Options.Applicative
 
-import qualified WindowsEnv.Environment as Env
+import qualified WindowsEnv
 
 import Prompt
 import PromptMessage
@@ -21,7 +21,7 @@ import PromptMessage
 data Options = Options
     { optYes    :: Bool
     , optGlobal :: Bool
-    , optName   :: Env.VarName
+    , optName   :: WindowsEnv.VarName
     } deriving (Eq, Show)
 
 optionParser :: Parser Options
@@ -53,14 +53,14 @@ unsetEnv options = runExceptT doUnsetEnv >>= either ioError return
 
     forAllUsers = optGlobal options
     profile
-        | forAllUsers = Env.AllUsers
-        | otherwise   = Env.CurrentUser
+        | forAllUsers = WindowsEnv.AllUsers
+        | otherwise   = WindowsEnv.CurrentUser
 
     skipPrompt = optYes options
     promptAnd
         | skipPrompt = withoutPrompt
         | otherwise  = withPrompt $ wipeMessage profile varName
 
-    wipe = Env.wipe profile varName
+    wipe = WindowsEnv.wipe profile varName
 
     doUnsetEnv = void $ promptAnd wipe

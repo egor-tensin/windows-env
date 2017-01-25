@@ -14,16 +14,16 @@ import System.IO.Error (ioError, isDoesNotExistError)
 
 import Options.Applicative
 
-import qualified WindowsEnv.Environment as Env
+import qualified WindowsEnv
 
 import Prompt
 import PromptMessage
 
 data Options = Options
-    { optName   :: Env.VarName
+    { optName   :: WindowsEnv.VarName
     , optYes    :: Bool
     , optGlobal :: Bool
-    , optPaths  :: [Env.VarValue]
+    , optPaths  :: [WindowsEnv.VarValue]
     } deriving (Eq, Show)
 
 optionParser :: Parser Options
@@ -61,8 +61,8 @@ addPath options = runExceptT doAddPath >>= either ioError return
 
     forAllUsers = optGlobal options
     profile
-        | forAllUsers = Env.AllUsers
-        | otherwise   = Env.CurrentUser
+        | forAllUsers = WindowsEnv.AllUsers
+        | otherwise   = WindowsEnv.CurrentUser
 
     skipPrompt = optYes options
 
@@ -71,13 +71,13 @@ addPath options = runExceptT doAddPath >>= either ioError return
         | otherwise = throwE e
 
     doAddPath = do
-        oldValue <- Env.query profile varName `catchE` emptyIfMissing
-        let oldPaths = Env.pathSplit oldValue
+        oldValue <- WindowsEnv.query profile varName `catchE` emptyIfMissing
+        let oldPaths = WindowsEnv.pathSplit oldValue
         let newPaths = oldPaths `union` pathsToAdd
         when (length oldPaths /= length newPaths) $ do
-            let newValue = Env.pathJoin newPaths
+            let newValue = WindowsEnv.pathJoin newPaths
             let promptAnd = if skipPrompt
                 then withoutPrompt
                 else withPrompt $ oldNewMessage profile varName oldValue newValue
-            let engrave = Env.engrave profile varName newValue
+            let engrave = WindowsEnv.engrave profile varName newValue
             void $ promptAnd engrave

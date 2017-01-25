@@ -15,7 +15,7 @@ cabal-version:       >=1.10
 
 library
   hs-source-dirs:      src
-  exposed-modules:     WindowsEnv.Environment
+  exposed-modules:     WindowsEnv, WindowsEnv.Environment
   other-modules:       WindowsEnv.Registry, WindowsEnv.Utils
   ghc-options:         -Wall -Werror
   build-depends:       base

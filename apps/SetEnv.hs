@@ -13,7 +13,7 @@ import System.IO.Error (ioError)
 
 import Options.Applicative
 
-import qualified WindowsEnv.Environment as Env
+import qualified WindowsEnv
 
 import Prompt
 import PromptMessage
@@ -21,8 +21,8 @@ import PromptMessage
 data Options = Options
     { optYes    :: Bool
     , optGlobal :: Bool
-    , optName   :: Env.VarName
-    , optValue  :: Env.VarValue
+    , optName   :: WindowsEnv.VarName
+    , optValue  :: WindowsEnv.VarValue
     } deriving (Eq, Show)
 
 optionParser :: Parser Options
@@ -59,14 +59,14 @@ setEnv options = runExceptT doSetEnv >>= either ioError return
 
     forAllUsers = optGlobal options
     profile
-        | forAllUsers = Env.AllUsers
-        | otherwise   = Env.CurrentUser
+        | forAllUsers = WindowsEnv.AllUsers
+        | otherwise   = WindowsEnv.CurrentUser
 
     skipPrompt = optYes options
     promptAnd
         | skipPrompt = withoutPrompt
         | otherwise  = withPrompt $ newMessage profile varName varValue
 
-    engrave = Env.engraveForce profile varName varValue
+    engrave = WindowsEnv.engraveForce profile varName varValue
 
     doSetEnv = void $ promptAnd engrave
