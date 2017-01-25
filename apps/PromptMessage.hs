@@ -3,7 +3,7 @@
 -- License     : MIT
 -- Maintainer  : Egor.Tensin@gmail.com
 -- Stability   : experimental
--- Portability : portable
+-- Portability : Windows-only
 
 module PromptMessage
     ( oldNewMessage
