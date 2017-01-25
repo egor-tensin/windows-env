@@ -1,10 +1,12 @@
 -- |
+-- Description : Lower-level registry access wrappers
 -- Copyright   : (c) 2015 Egor Tensin <Egor.Tensin@gmail.com>
 -- License     : MIT
 -- Maintainer  : Egor.Tensin@gmail.com
 -- Stability   : experimental
+-- Portability : Windows-only
 --
--- Low-level utility functions for reading and writing registry values.
+-- Lower-level functions for reading and writing registry values.
 
 module Windows.Registry
     ( IsKeyPath(..)

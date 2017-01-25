@@ -3,6 +3,7 @@
 -- License     : MIT
 -- Maintainer  : Egor.Tensin@gmail.com
 -- Stability   : experimental
+-- Portability : Windows-only
 
 module Main (main) where
 

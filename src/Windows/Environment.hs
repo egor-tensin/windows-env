@@ -1,8 +1,10 @@
 -- |
+-- Description : High-level environment variables management functions
 -- Copyright   : (c) 2015 Egor Tensin <Egor.Tensin@gmail.com>
 -- License     : MIT
 -- Maintainer  : Egor.Tensin@gmail.com
 -- Stability   : experimental
+-- Portability : Windows-only
 --
 -- High-level functions for reading and writing Windows environment variables.
 
