@@ -1,7 +1,14 @@
 name:          windows-env
 version:       0.1.0.0
 synopsis:      Manage Windows environment variables
-description:   Please see README.md
+description:
+  The only value this package currently provides is the bundled applications.
+  The library currently lacks documentation, and hence is more or less
+  unusable.
+  .
+  See the list of applications and their descriptions in README.md.
+  Alternatively, visit the homepage at
+  <https://github.com/egor-tensin/windows-env>.
 homepage:      https://github.com/egor-tensin/windows-env
 license:       MIT
 license-file:  LICENSE.txt
