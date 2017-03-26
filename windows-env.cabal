@@ -21,7 +21,7 @@ extra-source-files: README.md
 cabal-version:      >=1.10
 
 library
-  hs-source-dirs:     lib
+  hs-source-dirs:     src
   exposed-modules:    WindowsEnv, WindowsEnv.Environment
   other-modules:      WindowsEnv.Registry, WindowsEnv.Utils
   ghc-options:        -Wall -Werror
@@ -34,7 +34,7 @@ library
   default-language:   Haskell2010
 
 executable addpath
-  hs-source-dirs:     bin
+  hs-source-dirs:     app
   main-is:            AddPath.hs
   other-modules:      Utils.Prompt, Utils.PromptMessage
   ghc-options:        -Wall -Werror -threaded -rtsopts -with-rtsopts=-N
@@ -45,7 +45,7 @@ executable addpath
   default-language:   Haskell2010
 
 executable paths
-  hs-source-dirs:     bin
+  hs-source-dirs:     app
   main-is:            ListPaths.hs
   other-modules:      Utils.Prompt, Utils.PromptMessage
   ghc-options:        -Wall -Werror -threaded -rtsopts -with-rtsopts=-N
@@ -56,7 +56,7 @@ executable paths
   default-language:   Haskell2010
 
 executable delpath
-  hs-source-dirs:     bin
+  hs-source-dirs:     app
   main-is:            RemovePath.hs
   other-modules:      Utils.Prompt, Utils.PromptMessage
   ghc-options:        -Wall -Werror -threaded -rtsopts -with-rtsopts=-N
@@ -67,7 +67,7 @@ executable delpath
   default-language:   Haskell2010
 
 executable setenv
-  hs-source-dirs:     bin
+  hs-source-dirs:     app
   main-is:            SetEnv.hs
   other-modules:      Utils.Prompt, Utils.PromptMessage
   ghc-options:        -Wall -Werror -threaded -rtsopts -with-rtsopts=-N
@@ -78,7 +78,7 @@ executable setenv
   default-language:   Haskell2010
 
 executable delenv
-  hs-source-dirs:     bin
+  hs-source-dirs:     app
   main-is:            UnsetEnv.hs
   other-modules:      Utils.Prompt, Utils.PromptMessage
   ghc-options:        -Wall -Werror -threaded -rtsopts -with-rtsopts=-N
