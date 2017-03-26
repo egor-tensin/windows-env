@@ -36,7 +36,7 @@ library
 executable addpath
   hs-source-dirs:     bin
   main-is:            AddPath.hs
-  other-modules:      Prompt, PromptMessage
+  other-modules:      Utils.Prompt, Utils.PromptMessage
   ghc-options:        -Wall -Werror -threaded -rtsopts -with-rtsopts=-N
   build-depends:      base
                     , optparse-applicative
@@ -47,7 +47,7 @@ executable addpath
 executable paths
   hs-source-dirs:     bin
   main-is:            ListPaths.hs
-  other-modules:      Prompt, PromptMessage
+  other-modules:      Utils.Prompt, Utils.PromptMessage
   ghc-options:        -Wall -Werror -threaded -rtsopts -with-rtsopts=-N
   build-depends:      base, directory
                     , optparse-applicative
@@ -58,7 +58,7 @@ executable paths
 executable delpath
   hs-source-dirs:     bin
   main-is:            RemovePath.hs
-  other-modules:      Prompt, PromptMessage
+  other-modules:      Utils.Prompt, Utils.PromptMessage
   ghc-options:        -Wall -Werror -threaded -rtsopts -with-rtsopts=-N
   build-depends:      base
                     , optparse-applicative
@@ -69,7 +69,7 @@ executable delpath
 executable setenv
   hs-source-dirs:     bin
   main-is:            SetEnv.hs
-  other-modules:      Prompt, PromptMessage
+  other-modules:      Utils.Prompt, Utils.PromptMessage
   ghc-options:        -Wall -Werror -threaded -rtsopts -with-rtsopts=-N
   build-depends:      base
                     , optparse-applicative
@@ -80,7 +80,7 @@ executable setenv
 executable delenv
   hs-source-dirs:     bin
   main-is:            UnsetEnv.hs
-  other-modules:      Prompt, PromptMessage
+  other-modules:      Utils.Prompt, Utils.PromptMessage
   ghc-options:        -Wall -Werror -threaded -rtsopts -with-rtsopts=-N
   build-depends:      base
                     , optparse-applicative

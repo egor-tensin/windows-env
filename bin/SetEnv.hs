@@ -15,8 +15,8 @@ import Options.Applicative
 
 import qualified WindowsEnv
 
-import Prompt
-import PromptMessage
+import Utils.Prompt
+import Utils.PromptMessage
 
 data Options = Options
     { optYes    :: Bool

@@ -5,7 +5,7 @@
 -- Stability   : experimental
 -- Portability : portable
 
-module Prompt
+module Utils.Prompt
     ( withPrompt
     , withoutPrompt
     ) where

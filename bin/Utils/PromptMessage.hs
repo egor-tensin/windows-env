@@ -5,7 +5,7 @@
 -- Stability   : experimental
 -- Portability : Windows-only
 
-module PromptMessage
+module Utils.PromptMessage
     ( oldNewMessage
     , newMessage
     , wipeMessage
