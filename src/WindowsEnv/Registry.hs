@@ -152,6 +152,8 @@ decodeString (_, bytes) = T.unpack dropLastZero
 
 #include "ccall.h"
 
+-- These aren't provided by Win32 (as of version 2.4.0.0).
+
 foreign import WINDOWS_ENV_CCALL unsafe "Windows.h RegQueryValueExW"
     c_RegQueryValueEx :: WinAPI.PKEY -> WinAPI.LPCTSTR -> WinAPI.LPDWORD -> WinAPI.LPDWORD -> WinAPI.LPBYTE -> WinAPI.LPDWORD -> IO WinAPI.ErrCode
 
