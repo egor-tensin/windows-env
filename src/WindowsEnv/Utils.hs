@@ -5,6 +5,8 @@
 -- Stability   : experimental
 -- Portability : Windows-only
 
+{-# LANGUAGE CPP #-}
+
 module WindowsEnv.Utils
     ( notifyEnvironmentUpdate
     ) where
@@ -14,7 +16,9 @@ import qualified Graphics.Win32.GDI.Types as WinAPI
 import qualified Graphics.Win32.Message   as WinAPI
 import qualified System.Win32.Types       as WinAPI
 
-foreign import ccall "Windows.h SendNotifyMessageW"
+#include "ccall.h"
+
+foreign import WINDOWS_ENV_CCALL "Windows.h SendNotifyMessageW"
     c_SendNotifyMessage :: WinAPI.HWND -> WinAPI.WindowMessage -> WinAPI.WPARAM -> WinAPI.LPARAM -> IO WinAPI.LRESULT
 
 notifyEnvironmentUpdate :: IO ()

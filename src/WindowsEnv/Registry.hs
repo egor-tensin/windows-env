@@ -8,6 +8,8 @@
 --
 -- Lower-level functions for reading and writing registry values.
 
+{-# LANGUAGE CPP #-}
+
 module WindowsEnv.Registry
     ( IsKeyPath(..)
     , RootKey(..)
@@ -148,13 +150,15 @@ decodeString (_, bytes) = T.unpack dropLastZero
         | otherwise = T.takeWhile (/= '\0') text
     text = decodeUtf16LE bytes
 
-foreign import ccall unsafe "Windows.h RegQueryValueExW"
+#include "ccall.h"
+
+foreign import WINDOWS_ENV_CCALL unsafe "Windows.h RegQueryValueExW"
     c_RegQueryValueEx :: WinAPI.PKEY -> WinAPI.LPCTSTR -> WinAPI.LPDWORD -> WinAPI.LPDWORD -> WinAPI.LPBYTE -> WinAPI.LPDWORD -> IO WinAPI.ErrCode
 
-foreign import ccall unsafe "Windows.h RegSetValueExW"
+foreign import WINDOWS_ENV_CCALL unsafe "Windows.h RegSetValueExW"
     c_RegSetValueEx :: WinAPI.PKEY -> WinAPI.LPCTSTR -> WinAPI.DWORD -> WinAPI.DWORD -> WinAPI.LPBYTE -> WinAPI.DWORD -> IO WinAPI.ErrCode
 
-foreign import ccall unsafe "Windows.h RegGetValueW"
+foreign import WINDOWS_ENV_CCALL unsafe "Windows.h RegGetValueW"
     c_RegGetValue :: WinAPI.PKEY -> WinAPI.LPCTSTR -> WinAPI.LPCTSTR -> WinAPI.DWORD -> WinAPI.LPDWORD -> WinAPI.LPBYTE -> WinAPI.LPDWORD -> IO WinAPI.ErrCode
 
 queryValue :: IsKeyPath a => a -> ValueName -> ExceptT IOError IO ValueData
