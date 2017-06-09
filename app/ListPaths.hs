@@ -9,7 +9,7 @@ module Main (main) where
 
 import Control.Monad      (filterM)
 import Control.Monad.Trans.Class  (lift)
-import Control.Monad.Trans.Except (runExceptT)
+import Control.Monad.Trans.Except (ExceptT, runExceptT)
 import Data.Maybe         (fromMaybe)
 import System.Directory   (doesDirectoryExist)
 import System.Environment (lookupEnv)
@@ -63,22 +63,38 @@ main = execParser parser >>= listPaths
     parser = info (helper <*> optionParser) $
         fullDesc <> progDesc "List directories in your PATH"
 
+data ExpandedPath = ExpandedPath
+    { pathOriginal :: WindowsEnv.VarValue
+    , pathExpanded :: WindowsEnv.VarValue
+    } deriving (Eq, Show)
+
+splitAndExpand :: WindowsEnv.VarValue -> ExceptT IOError IO [ExpandedPath]
+splitAndExpand pathValue = do
+    expandedOnce <- expandOnce
+    zipWith ExpandedPath originalPaths <$>
+        if length expandedOnce == length originalPaths
+            then return expandedOnce
+            else expandEach
+  where
+    originalPaths = WindowsEnv.pathSplit pathValue
+    expandOnce = WindowsEnv.pathSplit <$> WindowsEnv.expand pathValue
+    expandEach = mapM WindowsEnv.expand originalPaths
+
 listPaths :: Options -> IO ()
 listPaths options = runExceptT doListPaths >>= either ioError return
   where
     varName = optName options
     whichPaths = optWhichPaths options
-    source = optSource options
 
-    query = queryFrom source
+    query = queryFrom $ optSource options
 
     queryFrom Environment = lift $ fromMaybe "" <$> lookupEnv varName
     queryFrom (Registry profile) = WindowsEnv.query profile varName
 
-    filterPaths = filterM $ shouldListPath whichPaths
+    filterPaths = filterM (shouldListPath whichPaths . pathExpanded)
 
     doListPaths = do
-        paths <- WindowsEnv.pathSplit <$> query
+        paths <- query >>= splitAndExpand
         lift $ do
             pathsToPrint <- filterPaths paths
-            mapM_ putStrLn pathsToPrint
+            mapM_ (putStrLn . pathOriginal) pathsToPrint

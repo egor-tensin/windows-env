@@ -8,12 +8,15 @@
 --
 -- High-level functions for reading and writing Windows environment variables.
 
+{-# LANGUAGE CPP #-}
+
 module WindowsEnv.Environment
     ( Profile(..)
     , profileKeyPath
 
     , VarName
     , VarValue
+    , expand
     , query
     , engrave
     , engraveForce
@@ -23,10 +26,14 @@ module WindowsEnv.Environment
     , pathSplit
     ) where
 
-import Control.Monad.Trans.Class  (lift)
-import Control.Monad.Trans.Except (ExceptT(..))
-import Data.List       (intercalate)
-import Data.List.Split (splitOn)
+import           Control.Monad.Trans.Class  (lift)
+import           Control.Monad.Trans.Except (ExceptT(..))
+import           Data.List             (intercalate)
+import           Data.List.Split       (splitOn)
+import           Foreign.Marshal.Alloc (allocaBytes)
+import           Foreign.Storable      (sizeOf)
+import           System.IO.Error       (catchIOError)
+import qualified System.Win32.Types    as WinAPI
 
 import qualified WindowsEnv.Registry as Registry
 import           WindowsEnv.Utils    (notifyEnvironmentUpdate)
@@ -48,8 +55,27 @@ profileKeyPath AllUsers    = Registry.KeyPath Registry.LocalMachine
 type VarName  = String
 type VarValue = String
 
+#include "ccall.h"
+
+-- ExpandEnvironmentStrings isn't provided by Win32 (as of version 2.4.0.0).
+
+foreign import WINDOWS_ENV_CCALL unsafe "Windows.h ExpandEnvironmentStringsW"
+    c_ExpandEnvironmentStrings :: WinAPI.LPCTSTR -> WinAPI.LPTSTR -> WinAPI.DWORD -> IO WinAPI.ErrCode
+
+expand :: VarValue -> ExceptT IOError IO VarValue
+expand value = ExceptT $ catchIOError (Right <$> doExpand) (return . Left)
+  where
+    doExpandIn valuePtr bufferPtr bufferLength = do
+        newBufferLength <- WinAPI.failIfZero "ExpandEnvironmentStringsW" $
+            c_ExpandEnvironmentStrings valuePtr bufferPtr bufferLength
+        let newBufferSize = (fromIntegral newBufferLength) * sizeOf (undefined :: WinAPI.TCHAR)
+        if newBufferLength > bufferLength
+            then allocaBytes newBufferSize $ \newBufferPtr -> doExpandIn valuePtr newBufferPtr newBufferLength
+            else WinAPI.peekTString bufferPtr
+    doExpand = WinAPI.withTString value $ \valuePtr -> doExpandIn valuePtr WinAPI.nullPtr 0
+
 query :: Profile -> VarName -> ExceptT IOError IO VarValue
-query profile name = Registry.getExpandedString (profileKeyPath profile) name
+query profile name = Registry.getString (profileKeyPath profile) name
 
 engrave :: Profile -> VarName -> VarValue -> ExceptT IOError IO ()
 engrave profile name value = do

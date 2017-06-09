@@ -30,8 +30,7 @@ module WindowsEnv.Registry
     , getValue
     , GetValueFlag(..)
     , getType
-
-    , getExpandedString
+    , getString
 
     , setValue
     , setString
@@ -238,7 +237,7 @@ getValue keyPath valueName flags =
                 valueType <- toEnum . fromIntegral <$> peek valueTypePtr
                 return (valueType, buffer)
   where
-    rawFlags = fromIntegral $ foldr ((.|.) . fromEnum) 0 flags
+    rawFlags = fromIntegral $ foldr ((.|.) . fromEnum) 0 (DoNotExpand : flags)
 
 getType :: IsKeyPath a => a -> ValueName -> [GetValueFlag] -> ExceptT IOError IO ValueType
 getType keyPath valueName flags =
@@ -250,11 +249,11 @@ getType keyPath valueName flags =
             c_RegGetValue keyHandlePtr WinAPI.nullPtr valueNamePtr rawFlags valueTypePtr WinAPI.nullPtr WinAPI.nullPtr
         toEnum . fromIntegral <$> peek valueTypePtr
   where
-    rawFlags = fromIntegral $ foldr ((.|.) . fromEnum) 0 (DoNotExpand : flags)
+    rawFlags = fromIntegral $ foldr ((.|.) . fromEnum) 0 flags
 
-getExpandedString :: IsKeyPath a => a -> ValueName -> ExceptT IOError IO String
-getExpandedString keyPath valueName = do
-    valueData <- getValue keyPath valueName [RestrictString]
+getString :: IsKeyPath a => a -> ValueName -> ExceptT IOError IO String
+getString keyPath valueName = do
+    valueData <- getValue keyPath valueName [RestrictExpandableString, RestrictString]
     return $ decodeString valueData
 
 setValue :: IsKeyPath a => a -> ValueName -> ValueData -> ExceptT IOError IO ()
