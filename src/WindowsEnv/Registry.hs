@@ -114,11 +114,11 @@ data ValueType = TypeNone
                deriving (Eq, Show)
 
 instance Enum ValueType where
-    fromEnum = fromJust . flip lookup valueTypeTable
-    toEnum = fromJust . flip lookup (map swap valueTypeTable)
+    fromEnum = fromJust . flip lookup valueTypeNumbers
+    toEnum = fromJust . flip lookup (map swap valueTypeNumbers)
 
-valueTypeTable :: [(ValueType, Int)]
-valueTypeTable =
+valueTypeNumbers :: [(ValueType, Int)]
+valueTypeNumbers =
     [ (TypeNone,     0)
     , (TypeBinary,   3)
     , (TypeDWord,    4)
@@ -202,11 +202,11 @@ data GetValueFlag = RestrictAny
                   deriving (Eq, Show)
 
 instance Enum GetValueFlag where
-    fromEnum = fromJust . flip lookup getValueFlagsTable
-    toEnum = fromJust . flip lookup (map swap getValueFlagsTable)
+    fromEnum = fromJust . flip lookup getValueFlagNumbers
+    toEnum = fromJust . flip lookup (map swap getValueFlagNumbers)
 
-getValueFlagsTable :: [(GetValueFlag, Int)]
-getValueFlagsTable =
+getValueFlagNumbers :: [(GetValueFlag, Int)]
+getValueFlagNumbers =
     [ (RestrictAny,    0x0000ffff)
     , (RestrictNone,   0x00000001)
     , (RestrictBinary, 0x00000008)
@@ -218,6 +218,9 @@ getValueFlagsTable =
     , (DoNotExpand,    0x10000000)
     ]
 
+collapseGetValueFlags :: Num a => [GetValueFlag] -> a
+collapseGetValueFlags = fromIntegral . foldr ((.|.) . fromEnum) 0
+
 getValue :: IsKeyPath a => a -> ValueName -> [GetValueFlag] -> ExceptT IOError IO ValueData
 getValue keyPath valueName flags =
     withHandle keyPath $ \keyHandle ->
@@ -226,18 +229,18 @@ getValue keyPath valueName flags =
     alloca $ \valueSizePtr -> do
         poke valueSizePtr 0
         WinAPI.failUnlessSuccess "RegGetValueW" $
-            c_RegGetValue keyHandlePtr WinAPI.nullPtr valueNamePtr rawFlags WinAPI.nullPtr WinAPI.nullPtr valueSizePtr
+            c_RegGetValue keyHandlePtr WinAPI.nullPtr valueNamePtr collapsedFlags WinAPI.nullPtr WinAPI.nullPtr valueSizePtr
         bufferCapacity <- fromIntegral <$> peek valueSizePtr
         alloca $ \valueTypePtr ->
             allocaBytes bufferCapacity $ \bufferPtr -> do
                 WinAPI.failUnlessSuccess "RegGetValueW" $
-                    c_RegGetValue keyHandlePtr WinAPI.nullPtr valueNamePtr rawFlags valueTypePtr bufferPtr valueSizePtr
+                    c_RegGetValue keyHandlePtr WinAPI.nullPtr valueNamePtr collapsedFlags valueTypePtr bufferPtr valueSizePtr
                 bufferSize <- fromIntegral <$> peek valueSizePtr
                 buffer <- B.pack <$> peekArray bufferSize bufferPtr
                 valueType <- toEnum . fromIntegral <$> peek valueTypePtr
                 return (valueType, buffer)
   where
-    rawFlags = fromIntegral $ foldr ((.|.) . fromEnum) 0 (DoNotExpand : flags)
+    collapsedFlags = collapseGetValueFlags $ DoNotExpand : flags
 
 getType :: IsKeyPath a => a -> ValueName -> [GetValueFlag] -> ExceptT IOError IO ValueType
 getType keyPath valueName flags =
@@ -246,10 +249,10 @@ getType keyPath valueName flags =
     WinAPI.withTString valueName $ \valueNamePtr ->
     alloca $ \valueTypePtr -> do
         WinAPI.failUnlessSuccess "RegGetValueW" $
-            c_RegGetValue keyHandlePtr WinAPI.nullPtr valueNamePtr rawFlags valueTypePtr WinAPI.nullPtr WinAPI.nullPtr
+            c_RegGetValue keyHandlePtr WinAPI.nullPtr valueNamePtr collapsedFlags valueTypePtr WinAPI.nullPtr WinAPI.nullPtr
         toEnum . fromIntegral <$> peek valueTypePtr
   where
-    rawFlags = fromIntegral $ foldr ((.|.) . fromEnum) 0 flags
+    collapsedFlags = collapseGetValueFlags flags
 
 getString :: IsKeyPath a => a -> ValueName -> ExceptT IOError IO String
 getString keyPath valueName = do
