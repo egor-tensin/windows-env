@@ -62,7 +62,7 @@ addPath :: Options -> IO ()
 addPath options = runExceptT doAddPath >>= either ioError return
   where
     varName = optName options
-    pathsToAdd = nub $ optPaths options
+    pathsToAdd = optPaths options
 
     forAllUsers = optGlobal options
     profile
@@ -83,7 +83,7 @@ addPath options = runExceptT doAddPath >>= either ioError return
     doAddPath = do
         oldValue <- WindowsEnv.query profile varName `catchE` emptyIfMissing
         let oldPaths = WindowsEnv.pathSplit oldValue
-        let newPaths = pathsToAdd \\ oldPaths
+        let newPaths = (nub pathsToAdd) \\ oldPaths
         unless (null newPaths) $ do
             let newValue = WindowsEnv.pathJoin $ append oldPaths newPaths
             let promptAnd = if skipPrompt
