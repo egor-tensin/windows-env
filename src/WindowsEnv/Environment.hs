@@ -16,7 +16,7 @@ module WindowsEnv.Environment
 
     , VarName
     , VarValue
-    , expand
+
     , query
     , engrave
     , engraveForce
@@ -24,6 +24,10 @@ module WindowsEnv.Environment
 
     , pathJoin
     , pathSplit
+
+    , expand
+    , ExpandedPath(..)
+    , pathSplitAndExpand
     ) where
 
 import           Control.Monad.Trans.Class  (lift)
@@ -55,27 +59,8 @@ profileKeyPath AllUsers    = Registry.KeyPath Registry.LocalMachine
 type VarName  = String
 type VarValue = String
 
-#include "ccall.h"
-
--- ExpandEnvironmentStrings isn't provided by Win32 (as of version 2.4.0.0).
-
-foreign import WINDOWS_ENV_CCALL unsafe "Windows.h ExpandEnvironmentStringsW"
-    c_ExpandEnvironmentStrings :: WinAPI.LPCTSTR -> WinAPI.LPTSTR -> WinAPI.DWORD -> IO WinAPI.ErrCode
-
-expand :: VarValue -> ExceptT IOError IO VarValue
-expand value = ExceptT $ catchIOError (Right <$> doExpand) (return . Left)
-  where
-    doExpandIn valuePtr bufferPtr bufferLength = do
-        newBufferLength <- WinAPI.failIfZero "ExpandEnvironmentStringsW" $
-            c_ExpandEnvironmentStrings valuePtr bufferPtr bufferLength
-        let newBufferSize = (fromIntegral newBufferLength) * sizeOf (undefined :: WinAPI.TCHAR)
-        if newBufferLength > bufferLength
-            then allocaBytes newBufferSize $ \newBufferPtr -> doExpandIn valuePtr newBufferPtr newBufferLength
-            else WinAPI.peekTString bufferPtr
-    doExpand = WinAPI.withTString value $ \valuePtr -> doExpandIn valuePtr WinAPI.nullPtr 0
-
 query :: Profile -> VarName -> ExceptT IOError IO VarValue
-query profile name = Registry.getString (profileKeyPath profile) name
+query profile name = Registry.getStringDoNotExpand (profileKeyPath profile) name
 
 engrave :: Profile -> VarName -> VarValue -> ExceptT IOError IO ()
 engrave profile name value = do
@@ -103,3 +88,39 @@ pathSplit = filter (not . null) . splitOn pathSep
 
 pathJoin :: [VarValue] -> VarValue
 pathJoin = intercalate pathSep . filter (not . null)
+
+#include "ccall.h"
+
+-- ExpandEnvironmentStrings isn't provided by Win32 (as of version 2.4.0.0).
+
+foreign import WINDOWS_ENV_CCALL unsafe "Windows.h ExpandEnvironmentStringsW"
+    c_ExpandEnvironmentStrings :: WinAPI.LPCTSTR -> WinAPI.LPTSTR -> WinAPI.DWORD -> IO WinAPI.ErrCode
+
+expand :: VarValue -> ExceptT IOError IO VarValue
+expand value = ExceptT $ catchIOError (Right <$> doExpand) (return . Left)
+  where
+    doExpandIn valuePtr bufferPtr bufferLength = do
+        newBufferLength <- WinAPI.failIfZero "ExpandEnvironmentStringsW" $
+            c_ExpandEnvironmentStrings valuePtr bufferPtr bufferLength
+        let newBufferSize = (fromIntegral newBufferLength) * sizeOf (undefined :: WinAPI.TCHAR)
+        if newBufferLength > bufferLength
+            then allocaBytes newBufferSize $ \newBufferPtr -> doExpandIn valuePtr newBufferPtr newBufferLength
+            else WinAPI.peekTString bufferPtr
+    doExpand = WinAPI.withTString value $ \valuePtr -> doExpandIn valuePtr WinAPI.nullPtr 0
+
+data ExpandedPath = ExpandedPath
+    { pathOriginal :: VarValue
+    , pathExpanded :: VarValue
+    } deriving (Eq, Show)
+
+pathSplitAndExpand :: VarValue -> ExceptT IOError IO [ExpandedPath]
+pathSplitAndExpand pathValue = do
+    expandedOnce <- expandOnce
+    zipWith ExpandedPath originalPaths <$>
+        if length expandedOnce == length originalPaths
+            then return expandedOnce
+            else expandEach
+  where
+    originalPaths = pathSplit pathValue
+    expandOnce = pathSplit <$> expand pathValue
+    expandEach = mapM expand originalPaths

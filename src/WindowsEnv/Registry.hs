@@ -30,7 +30,7 @@ module WindowsEnv.Registry
     , getValue
     , GetValueFlag(..)
     , getType
-    , getString
+    , getStringDoNotExpand
 
     , setValue
     , setString
@@ -252,10 +252,10 @@ getType keyPath valueName flags =
             c_RegGetValue keyHandlePtr WinAPI.nullPtr valueNamePtr collapsedFlags valueTypePtr WinAPI.nullPtr WinAPI.nullPtr
         toEnum . fromIntegral <$> peek valueTypePtr
   where
-    collapsedFlags = collapseGetValueFlags flags
+    collapsedFlags = collapseGetValueFlags $ DoNotExpand : flags
 
-getString :: IsKeyPath a => a -> ValueName -> ExceptT IOError IO String
-getString keyPath valueName = do
+getStringDoNotExpand :: IsKeyPath a => a -> ValueName -> ExceptT IOError IO String
+getStringDoNotExpand keyPath valueName = do
     valueData <- getValue keyPath valueName [RestrictExpandableString, RestrictString]
     return $ decodeString valueData
 
