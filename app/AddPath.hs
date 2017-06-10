@@ -7,9 +7,9 @@
 
 module Main (main) where
 
-import Control.Monad   (void, when)
+import Control.Monad   (unless, void)
 import Control.Monad.Trans.Except (catchE, runExceptT, throwE)
-import Data.List       (union)
+import Data.List       ((\\), nub)
 import System.IO.Error (ioError, isDoesNotExistError)
 
 import Options.Applicative
@@ -21,9 +21,10 @@ import Utils.PromptMessage
 
 data Options = Options
     { optName   :: WindowsEnv.VarName
-    , optYes    :: Bool
-    , optGlobal :: Bool
-    , optPaths  :: [WindowsEnv.VarValue]
+    , optYes     :: Bool
+    , optGlobal  :: Bool
+    , optPrepend :: Bool
+    , optPaths   :: [WindowsEnv.VarValue]
     } deriving (Eq, Show)
 
 optionParser :: Parser Options
@@ -31,6 +32,7 @@ optionParser = Options
     <$> optNameDesc
     <*> optYesDesc
     <*> optGlobalDesc
+    <*> optPrependDesc
     <*> optPathsDesc
   where
     optNameDesc = strOption
@@ -43,6 +45,9 @@ optionParser = Options
     optGlobalDesc = switch
          $ long "global" <> short 'g'
         <> help "Add for all users"
+    optPrependDesc = switch
+         $ long "prepend" <> short 'p'
+        <> help "Prepend to the variable (instead of appending)"
     optPathsDesc = many $ argument str
          $ metavar "PATH"
         <> help "Directories to add"
@@ -57,7 +62,7 @@ addPath :: Options -> IO ()
 addPath options = runExceptT doAddPath >>= either ioError return
   where
     varName = optName options
-    pathsToAdd = optPaths options
+    pathsToAdd = nub $ optPaths options
 
     forAllUsers = optGlobal options
     profile
@@ -66,6 +71,11 @@ addPath options = runExceptT doAddPath >>= either ioError return
 
     skipPrompt = optYes options
 
+    prepend = optPrepend options
+    append xs ys
+        | prepend = ys ++ xs
+        | otherwise = xs ++ ys
+
     emptyIfMissing e
         | isDoesNotExistError e = return ""
         | otherwise = throwE e
@@ -73,9 +83,9 @@ addPath options = runExceptT doAddPath >>= either ioError return
     doAddPath = do
         oldValue <- WindowsEnv.query profile varName `catchE` emptyIfMissing
         let oldPaths = WindowsEnv.pathSplit oldValue
-        let newPaths = oldPaths `union` pathsToAdd
-        when (length oldPaths /= length newPaths) $ do
-            let newValue = WindowsEnv.pathJoin newPaths
+        let newPaths = pathsToAdd \\ oldPaths
+        unless (null newPaths) $ do
+            let newValue = WindowsEnv.pathJoin $ append oldPaths newPaths
             let promptAnd = if skipPrompt
                 then withoutPrompt
                 else withPrompt $ oldNewMessage profile varName oldValue newValue
