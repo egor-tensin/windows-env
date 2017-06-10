@@ -9,8 +9,8 @@
 -- An empty module to re-export everything required by the packaged
 -- applications.
 
-module WindowsEnv (
-    module WindowsEnv.Environment
+module WindowsEnv
+    ( module WindowsEnv.Environment
     ) where
 
 import WindowsEnv.Environment
