@@ -19,17 +19,17 @@ module WindowsEnv.Registry
     , ValueType
     , ValueData
 
-    , open
-    , close
+    , openKey
+    , closeKey
 
     , deleteValue
 
     , queryValue
-    , queryType
+    , queryValueType
 
     , getValue
     , GetValueFlag(..)
-    , getType
+    , getValueType
     , getStringDoNotExpand
 
     , setValue
@@ -58,21 +58,21 @@ import qualified System.Win32.Registry as WinAPI
 type Handle = WinAPI.HKEY
 
 class IsKeyPath a where
-    openUnsafe :: a -> IO Handle
+    openKeyUnsafe :: a -> IO Handle
 
-close :: Handle -> IO ()
-close = WinAPI.regCloseKey
+closeKey :: Handle -> IO ()
+closeKey = WinAPI.regCloseKey
 
-open :: IsKeyPath a => a -> IO (Either IOError Handle)
-open keyPath = catchIOError doOpen wrapError
+openKey :: IsKeyPath a => a -> IO (Either IOError Handle)
+openKey keyPath = catchIOError doOpenKey wrapError
   where
-    doOpen = Right <$> openUnsafe keyPath
+    doOpenKey = Right <$> openKeyUnsafe keyPath
     wrapError = return . Left
 
 withHandle :: IsKeyPath a => a -> (Handle -> IO b) -> ExceptT IOError IO b
-withHandle keyPath f = ExceptT $ catchIOError doStuff wrapError
+withHandle keyPath f = ExceptT $ catchIOError doWithHandle wrapError
   where
-    doStuff = Right <$> bracket (openUnsafe keyPath) close f
+    doWithHandle = Right <$> bracket (openKeyUnsafe keyPath) closeKey f
     wrapError = return . Left
 
 data RootKey = CurrentUser
@@ -80,8 +80,8 @@ data RootKey = CurrentUser
              deriving (Eq)
 
 instance IsKeyPath RootKey where
-    openUnsafe CurrentUser = return WinAPI.hKEY_CURRENT_USER
-    openUnsafe LocalMachine = return WinAPI.hKEY_LOCAL_MACHINE
+    openKeyUnsafe CurrentUser = return WinAPI.hKEY_CURRENT_USER
+    openKeyUnsafe LocalMachine = return WinAPI.hKEY_LOCAL_MACHINE
 
 instance Show RootKey where
     show CurrentUser = "HKCU"
@@ -93,8 +93,8 @@ pathSep :: String
 pathSep = "\\"
 
 instance IsKeyPath KeyPath where
-    openUnsafe (KeyPath root path) = do
-        rootHandle <- openUnsafe root
+    openKeyUnsafe (KeyPath root path) = do
+        rootHandle <- openKeyUnsafe root
         WinAPI.regOpenKey rootHandle $ intercalate pathSep path
 
 instance Show KeyPath where
@@ -180,8 +180,8 @@ queryValue keyPath valueName =
                 valueType <- toEnum . fromIntegral <$> peek valueTypePtr
                 return (valueType, buffer)
 
-queryType :: IsKeyPath a => a -> ValueName -> ExceptT IOError IO ValueType
-queryType keyPath valueName =
+queryValueType :: IsKeyPath a => a -> ValueName -> ExceptT IOError IO ValueType
+queryValueType keyPath valueName =
     withHandle keyPath $ \keyHandle ->
     withForeignPtr keyHandle $ \keyHandlePtr ->
     WinAPI.withTString valueName $ \valueNamePtr ->
@@ -242,8 +242,8 @@ getValue keyPath valueName flags =
   where
     collapsedFlags = collapseGetValueFlags $ DoNotExpand : flags
 
-getType :: IsKeyPath a => a -> ValueName -> [GetValueFlag] -> ExceptT IOError IO ValueType
-getType keyPath valueName flags =
+getValueType :: IsKeyPath a => a -> ValueName -> [GetValueFlag] -> ExceptT IOError IO ValueType
+getValueType keyPath valueName flags =
     withHandle keyPath $ \keyHandle ->
     withForeignPtr keyHandle $ \keyHandlePtr ->
     WinAPI.withTString valueName $ \valueNamePtr ->
@@ -283,7 +283,7 @@ setExpandableString keyPath valueName valueData =
 
 setStringPreserveType :: IsKeyPath a => a -> ValueName -> String -> ExceptT IOError IO ()
 setStringPreserveType keyPath valueName valueData = do
-    valueType <- getType keyPath valueName flags `catchE` stringByDefault
+    valueType <- getValueType keyPath valueName flags `catchE` stringByDefault
     setValue keyPath valueName (valueType, encodeString valueData)
   where
     flags = [RestrictString, RestrictExpandableString]
