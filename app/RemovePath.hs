@@ -9,7 +9,6 @@ module Main (main) where
 
 import Control.Monad   (void, when)
 import Control.Monad.Trans.Except (catchE, runExceptT, throwE)
-import Data.List       ((\\))
 import System.IO.Error (ioError, isDoesNotExistError)
 
 import Options.Applicative
@@ -75,7 +74,7 @@ removePath options = runExceptT doRemovePath >>= either ioError return
     removePathFrom profile = do
         oldValue <- WindowsEnv.query profile varName `catchE` emptyIfMissing
         let oldPaths = WindowsEnv.pathSplit oldValue
-        let newPaths = oldPaths \\ pathsToRemove
+        let newPaths = filter (flip notElem pathsToRemove) oldPaths
         when (length oldPaths /= length newPaths) $ do
             let newValue = WindowsEnv.pathJoin newPaths
             let promptAnd = if skipPrompt
