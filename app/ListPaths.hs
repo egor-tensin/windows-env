@@ -11,7 +11,6 @@ import Control.Monad      (filterM)
 import Control.Monad.Trans.Class  (lift)
 import Control.Monad.Trans.Except (runExceptT)
 import Data.Maybe         (fromMaybe)
-import System.Directory   (doesDirectoryExist)
 import System.Environment (lookupEnv)
 import System.IO.Error    (ioError)
 
@@ -22,10 +21,10 @@ import qualified WindowsEnv
 data WhichPaths = All | ExistingOnly | MissingOnly
                 deriving (Eq, Show)
 
-shouldListPath :: WhichPaths -> String -> IO Bool
+shouldListPath :: WhichPaths -> WindowsEnv.ExpandedPath -> IO Bool
 shouldListPath All = return . const True
-shouldListPath ExistingOnly = doesDirectoryExist
-shouldListPath MissingOnly  = fmap not . doesDirectoryExist
+shouldListPath ExistingOnly = WindowsEnv.pathExists
+shouldListPath MissingOnly  = fmap not . WindowsEnv.pathExists
 
 data Source = Environment | Registry WindowsEnv.Profile
             deriving (Eq, Show)
@@ -71,13 +70,12 @@ listPaths options = runExceptT doListPaths >>= either ioError return
 
     query = queryFrom $ optSource options
 
-    queryFrom Environment = lift $ fromMaybe "" <$> lookupEnv varName
-    queryFrom (Registry profile) = show <$> WindowsEnv.query profile varName
-
-    filterPaths = filterM (shouldListPath whichPaths . WindowsEnv.pathExpanded)
+    queryFrom Environment = lift $ WindowsEnv.VarValue False <$> fromMaybe "" <$> lookupEnv varName
+    queryFrom (Registry profile) = WindowsEnv.query profile varName
 
     doListPaths = do
-        paths <- query >>= WindowsEnv.pathSplitAndExpand
+        value <- query
+        split <- WindowsEnv.pathSplitAndExpand value
         lift $ do
-            pathsToPrint <- filterPaths paths
-            mapM_ (putStrLn . WindowsEnv.pathOriginal) pathsToPrint
+            wanted <- filterM (shouldListPath whichPaths) split
+            mapM_ (putStrLn . WindowsEnv.pathOriginal) wanted

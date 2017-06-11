@@ -15,25 +15,25 @@ import Text.Printf (printf)
 
 import qualified WindowsEnv
 
-oldNewMessage :: WindowsEnv.Profile -> WindowsEnv.VarName -> String -> String -> String
+oldNewMessage :: WindowsEnv.Profile -> WindowsEnv.VarName -> WindowsEnv.VarValue -> WindowsEnv.VarValue -> String
 oldNewMessage profile name oldValue newValue =
     descrMsg ++ oldValueMsg ++ newValueMsg
   where
     profileKey = WindowsEnv.profileKeyPath profile
-    descrMsg = printf "Saving variable '%s' to '%s'...\n" name (show profileKey)
-    oldValueMsg = printf "\tOld value: %s\n" oldValue
-    newValueMsg = printf "\tNew value: %s\n" newValue
+    descrMsg = printf "Saving variable '%s' to '%s'...\n" name $ show profileKey
+    oldValueMsg = printf "\tOld value: %s\n" $ WindowsEnv.varValueString oldValue
+    newValueMsg = printf "\tNew value: %s\n" $ WindowsEnv.varValueString newValue
 
-newMessage :: WindowsEnv.Profile -> WindowsEnv.VarName -> String -> String
+newMessage :: WindowsEnv.Profile -> WindowsEnv.VarName -> WindowsEnv.VarValue -> String
 newMessage profile name newValue =
     descrMsg ++ newValueMsg
   where
     profileKey = WindowsEnv.profileKeyPath profile
-    descrMsg = printf "Saving variable '%s' to '%s'...\n" name (show profileKey)
-    newValueMsg = printf "\tNew value: %s\n" newValue
+    descrMsg = printf "Saving variable '%s' to '%s'...\n" name $ show profileKey
+    newValueMsg = printf "\tNew value: %s\n" $ WindowsEnv.varValueString newValue
 
 wipeMessage :: WindowsEnv.Profile -> WindowsEnv.VarName -> String
 wipeMessage profile name =
-    printf "Deleting variable '%s' from '%s'...\n" name (show profileKey)
+    printf "Deleting variable '%s' from '%s'...\n" name $ show profileKey
   where
     profileKey = WindowsEnv.profileKeyPath profile

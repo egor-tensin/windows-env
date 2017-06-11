@@ -85,6 +85,6 @@ removePath options = runExceptT doRemovePath >>= either ioError return
             let newValue = WindowsEnv.VarValue (WindowsEnv.varValueExpandable oldValue) (WindowsEnv.pathJoin newPaths)
             let promptAnd = if skipPrompt
                 then withoutPrompt
-                else withPrompt $ oldNewMessage profile varName (show oldValue) (show newValue)
+                else withPrompt $ oldNewMessage profile varName oldValue newValue
             let engrave = WindowsEnv.engrave profile varName newValue
             void $ promptAnd engrave

@@ -97,6 +97,6 @@ addPath options = runExceptT doAddPath >>= either ioError return
     promptAndEngrave oldValue newValue = do
         let promptAnd = if skipPrompt
             then withoutPrompt
-            else withPrompt $ oldNewMessage profile varName (show oldValue) (show newValue)
+            else withPrompt $ oldNewMessage profile varName oldValue newValue
         let engrave = WindowsEnv.engrave profile varName newValue
         void $ promptAnd engrave

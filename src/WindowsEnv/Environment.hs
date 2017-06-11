@@ -25,8 +25,12 @@ module WindowsEnv.Environment
     , pathSplit
 
     , expand
-    , ExpandedPath(..)
     , pathSplitAndExpand
+
+    , ExpandedPath(..)
+    , pathOriginal
+    , pathExpanded
+    , pathExists
     ) where
 
 import           Control.Monad.Trans.Class  (lift)
@@ -35,6 +39,7 @@ import           Data.List             (intercalate)
 import           Data.List.Split       (splitOn)
 import           Foreign.Marshal.Alloc (allocaBytes)
 import           Foreign.Storable      (sizeOf)
+import           System.Directory      (doesDirectoryExist)
 import           System.IO.Error       (catchIOError)
 import qualified System.Win32.Types    as WinAPI
 
@@ -119,19 +124,32 @@ expand value = ExceptT $ catchIOError (Right <$> doExpand) (return . Left)
             else WinAPI.peekTString bufferPtr
     doExpand = WinAPI.withTString value $ \valuePtr -> doExpandIn valuePtr WinAPI.nullPtr 0
 
-data ExpandedPath = ExpandedPath
-    { pathOriginal :: String
-    , pathExpanded :: String
-    } deriving (Eq, Show)
+data ExpandedPath = UnexpandedPath String
+                  | ExpandedPath String String
+                  deriving (Eq, Show)
 
-pathSplitAndExpand :: String -> ExceptT IOError IO [ExpandedPath]
-pathSplitAndExpand value = do
-    expandedOnce <- expandOnce
-    zipWith ExpandedPath originalPaths <$>
-        if length expandedOnce == length originalPaths
-            then return expandedOnce
-            else expandEach
+pathOriginal :: ExpandedPath -> String
+pathOriginal (UnexpandedPath path) = path
+pathOriginal (ExpandedPath original expanded) = original
+
+pathExpanded :: ExpandedPath -> String
+pathExpanded (UnexpandedPath path) = path
+pathExpanded (ExpandedPath original expanded) = expanded
+
+pathExists :: ExpandedPath -> IO Bool
+pathExists = doesDirectoryExist . pathExpanded
+
+pathSplitAndExpand :: VarValue -> ExceptT IOError IO [ExpandedPath]
+pathSplitAndExpand value
+    | varValueExpandable value = do
+        expanded <- expandOnce
+        zipWith ExpandedPath split <$>
+            if length expanded == length split
+                then return expanded
+                else expandEach
+    | otherwise = return $ map UnexpandedPath $ pathSplit joined
   where
-    originalPaths = pathSplit value
-    expandOnce = pathSplit <$> expand value
-    expandEach = mapM expand originalPaths
+    joined = varValueString value
+    split = pathSplit joined
+    expandOnce = pathSplit <$> expand joined
+    expandEach = mapM expand split

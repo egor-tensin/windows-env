@@ -27,6 +27,7 @@ library
   ghc-options:        -Wall -Werror
   build-depends:      base
                     , bytestring
+                    , directory
                     , split
                     , text
                     , transformers
@@ -50,7 +51,6 @@ executable paths
   other-modules:      Utils.Prompt, Utils.PromptMessage
   ghc-options:        -Wall -Werror -threaded -rtsopts -with-rtsopts=-N
   build-depends:      base
-                    , directory
                     , optparse-applicative
                     , transformers
                     , windows-env
