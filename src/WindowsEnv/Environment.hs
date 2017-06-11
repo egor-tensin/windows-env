@@ -15,11 +15,10 @@ module WindowsEnv.Environment
     , profileKeyPath
 
     , VarName
-    , VarValue
+    , VarValue(..)
 
     , query
     , engrave
-    , engraveForce
     , wipe
 
     , pathJoin
@@ -56,21 +55,33 @@ profileKeyPath AllUsers    = Registry.KeyPath Registry.LocalMachine
     , "Environment"
     ]
 
-type VarName  = String
-type VarValue = String
+type VarName = String
+
+data VarValue = VarValue
+    { varValueExpandable :: Bool
+    , varValueString :: String
+    } deriving (Eq)
+
+instance Show VarValue where
+    show = varValueString
+
+valueFromRegistry :: Registry.StringValue -> VarValue
+valueFromRegistry (valueType, valueData)
+    | valueType == Registry.TypeString = VarValue False valueData
+    | valueType == Registry.TypeExpandableString = VarValue True valueData
+    | otherwise = error "WindowsEnv.Environment: unexpected"
+
+valueToRegistry :: VarValue -> Registry.StringValue
+valueToRegistry value
+    | varValueExpandable value = (Registry.TypeExpandableString, varValueString value)
+    | otherwise = (Registry.TypeString, varValueString value)
 
 query :: Profile -> VarName -> ExceptT IOError IO VarValue
-query profile name = Registry.getStringDoNotExpand (profileKeyPath profile) name
+query profile name = valueFromRegistry <$> Registry.getStringValue (profileKeyPath profile) name
 
 engrave :: Profile -> VarName -> VarValue -> ExceptT IOError IO ()
 engrave profile name value = do
-    ret <- Registry.setStringPreserveType (profileKeyPath profile) name value
-    lift notifyEnvironmentUpdate
-    return ret
-
-engraveForce :: Profile -> VarName -> VarValue -> ExceptT IOError IO ()
-engraveForce profile name value = do
-    ret <- Registry.setString (profileKeyPath profile) name value
+    ret <- Registry.setStringValue (profileKeyPath profile) name $ valueToRegistry value
     lift notifyEnvironmentUpdate
     return ret
 
@@ -80,13 +91,13 @@ wipe profile name = do
     lift notifyEnvironmentUpdate
     return ret
 
-pathSep :: VarValue
+pathSep :: String
 pathSep = ";"
 
-pathSplit :: VarValue -> [VarValue]
+pathSplit :: String -> [String]
 pathSplit = filter (not . null) . splitOn pathSep
 
-pathJoin :: [VarValue] -> VarValue
+pathJoin :: [String] -> String
 pathJoin = intercalate pathSep . filter (not . null)
 
 #include "ccall.h"
@@ -96,7 +107,7 @@ pathJoin = intercalate pathSep . filter (not . null)
 foreign import WINDOWS_ENV_CCALL unsafe "Windows.h ExpandEnvironmentStringsW"
     c_ExpandEnvironmentStrings :: WinAPI.LPCTSTR -> WinAPI.LPTSTR -> WinAPI.DWORD -> IO WinAPI.ErrCode
 
-expand :: VarValue -> ExceptT IOError IO VarValue
+expand :: String -> ExceptT IOError IO String
 expand value = ExceptT $ catchIOError (Right <$> doExpand) (return . Left)
   where
     doExpandIn valuePtr bufferPtr bufferLength = do
@@ -109,18 +120,18 @@ expand value = ExceptT $ catchIOError (Right <$> doExpand) (return . Left)
     doExpand = WinAPI.withTString value $ \valuePtr -> doExpandIn valuePtr WinAPI.nullPtr 0
 
 data ExpandedPath = ExpandedPath
-    { pathOriginal :: VarValue
-    , pathExpanded :: VarValue
+    { pathOriginal :: String
+    , pathExpanded :: String
     } deriving (Eq, Show)
 
-pathSplitAndExpand :: VarValue -> ExceptT IOError IO [ExpandedPath]
-pathSplitAndExpand pathValue = do
+pathSplitAndExpand :: String -> ExceptT IOError IO [ExpandedPath]
+pathSplitAndExpand value = do
     expandedOnce <- expandOnce
     zipWith ExpandedPath originalPaths <$>
         if length expandedOnce == length originalPaths
             then return expandedOnce
             else expandEach
   where
-    originalPaths = pathSplit pathValue
-    expandOnce = pathSplit <$> expand pathValue
+    originalPaths = pathSplit value
+    expandOnce = pathSplit <$> expand value
     expandEach = mapM expand originalPaths

@@ -16,8 +16,9 @@ module WindowsEnv.Registry
     , KeyPath(..)
 
     , ValueName
-    , ValueType
-    , ValueData
+    , ValueType(..)
+    , Value
+    , StringValue
 
     , openKey
     , closeKey
@@ -30,16 +31,14 @@ module WindowsEnv.Registry
     , getValue
     , GetValueFlag(..)
     , getValueType
-    , getStringDoNotExpand
+    , getStringValue
 
     , setValue
-    , setString
-    , setExpandableString
-    , setStringPreserveType
+    , setStringValue
     ) where
 
 import           Control.Exception     (bracket)
-import           Control.Monad.Trans.Except (ExceptT(..), catchE, throwE)
+import           Control.Monad.Trans.Except (ExceptT(..))
 import           Data.Bits             ((.|.))
 import qualified Data.ByteString       as B
 import           Data.List             (intercalate)
@@ -51,7 +50,7 @@ import           Foreign.ForeignPtr    (withForeignPtr)
 import           Foreign.Marshal.Alloc (alloca, allocaBytes)
 import           Foreign.Marshal.Array (peekArray, pokeArray)
 import           Foreign.Storable      (peek, poke)
-import           System.IO.Error       (catchIOError, isDoesNotExistError)
+import           System.IO.Error       (catchIOError)
 import qualified System.Win32.Types    as WinAPI
 import qualified System.Win32.Registry as WinAPI
 
@@ -89,16 +88,16 @@ instance Show RootKey where
 
 data KeyPath = KeyPath RootKey [String]
 
-pathSep :: String
-pathSep = "\\"
+keyPathSep :: String
+keyPathSep = "\\"
 
 instance IsKeyPath KeyPath where
     openKeyUnsafe (KeyPath root path) = do
         rootHandle <- openKeyUnsafe root
-        WinAPI.regOpenKey rootHandle $ intercalate pathSep path
+        WinAPI.regOpenKey rootHandle $ intercalate keyPathSep path
 
 instance Show KeyPath where
-    show (KeyPath root path) = intercalate pathSep $ show root : path
+    show (KeyPath root path) = intercalate keyPathSep $ show root : path
 
 type ValueName = String
 
@@ -130,24 +129,25 @@ valueTypeNumbers =
     , (TypeLink,     6)
     ]
 
-type ValueData = (ValueType, B.ByteString)
+type Value = (ValueType, B.ByteString)
+type StringValue = (ValueType, String)
 
-encodeString :: String -> B.ByteString
-encodeString str = encodeUtf16LE addLastZero
+encodeString :: StringValue -> Value
+encodeString (valueType, valueData) = (valueType, encodeUtf16LE addLastZero)
   where
     addLastZero
         | T.null text = text
         | T.last text == '\0' = text
         | otherwise = T.snoc text '\0'
-    text = T.pack str
+    text = T.pack valueData
 
-decodeString :: ValueData -> String
-decodeString (_, bytes) = T.unpack dropLastZero
+decodeString :: Value -> StringValue
+decodeString (valueType, valueData) = (valueType, T.unpack dropLastZero)
   where
     dropLastZero
         | T.null text = text
         | otherwise = T.takeWhile (/= '\0') text
-    text = decodeUtf16LE bytes
+    text = decodeUtf16LE valueData
 
 #include "ccall.h"
 
@@ -162,7 +162,7 @@ foreign import WINDOWS_ENV_CCALL unsafe "Windows.h RegSetValueExW"
 foreign import WINDOWS_ENV_CCALL unsafe "Windows.h RegGetValueW"
     c_RegGetValue :: WinAPI.PKEY -> WinAPI.LPCTSTR -> WinAPI.LPCTSTR -> WinAPI.DWORD -> WinAPI.LPDWORD -> WinAPI.LPBYTE -> WinAPI.LPDWORD -> IO WinAPI.ErrCode
 
-queryValue :: IsKeyPath a => a -> ValueName -> ExceptT IOError IO ValueData
+queryValue :: IsKeyPath a => a -> ValueName -> ExceptT IOError IO Value
 queryValue keyPath valueName =
     withHandle keyPath $ \keyHandle ->
     withForeignPtr keyHandle $ \keyHandlePtr ->
@@ -221,7 +221,7 @@ getValueFlagNumbers =
 collapseGetValueFlags :: Num a => [GetValueFlag] -> a
 collapseGetValueFlags = fromIntegral . foldr ((.|.) . fromEnum) 0
 
-getValue :: IsKeyPath a => a -> ValueName -> [GetValueFlag] -> ExceptT IOError IO ValueData
+getValue :: IsKeyPath a => a -> ValueName -> [GetValueFlag] -> ExceptT IOError IO Value
 getValue keyPath valueName flags =
     withHandle keyPath $ \keyHandle ->
     withForeignPtr keyHandle $ \keyHandlePtr ->
@@ -254,12 +254,11 @@ getValueType keyPath valueName flags =
   where
     collapsedFlags = collapseGetValueFlags $ DoNotExpand : flags
 
-getStringDoNotExpand :: IsKeyPath a => a -> ValueName -> ExceptT IOError IO String
-getStringDoNotExpand keyPath valueName = do
-    valueData <- getValue keyPath valueName [RestrictExpandableString, RestrictString]
-    return $ decodeString valueData
+getStringValue :: IsKeyPath a => a -> ValueName -> ExceptT IOError IO StringValue
+getStringValue keyPath valueName =
+    decodeString <$> getValue keyPath valueName [RestrictExpandableString, RestrictString]
 
-setValue :: IsKeyPath a => a -> ValueName -> ValueData -> ExceptT IOError IO ()
+setValue :: IsKeyPath a => a -> ValueName -> Value -> ExceptT IOError IO ()
 setValue keyPath valueName (valueType, valueData) =
     withHandle keyPath $ \keyHandle ->
     withForeignPtr keyHandle $ \keyHandlePtr ->
@@ -273,23 +272,9 @@ setValue keyPath valueName (valueType, valueData) =
     buffer = B.unpack valueData
     bufferSize = B.length valueData
 
-setString :: IsKeyPath a => a -> ValueName -> String -> ExceptT IOError IO ()
-setString keyPath valueName valueData =
-    setValue keyPath valueName (TypeString, encodeString valueData)
-
-setExpandableString :: IsKeyPath a => a -> ValueName -> String -> ExceptT IOError IO ()
-setExpandableString keyPath valueName valueData =
-    setValue keyPath valueName (TypeExpandableString, encodeString valueData)
-
-setStringPreserveType :: IsKeyPath a => a -> ValueName -> String -> ExceptT IOError IO ()
-setStringPreserveType keyPath valueName valueData = do
-    valueType <- getValueType keyPath valueName flags `catchE` stringByDefault
-    setValue keyPath valueName (valueType, encodeString valueData)
-  where
-    flags = [RestrictString, RestrictExpandableString]
-    stringByDefault e
-        | isDoesNotExistError e = return TypeString
-        | otherwise = throwE e
+setStringValue :: IsKeyPath a => a -> ValueName -> StringValue -> ExceptT IOError IO ()
+setStringValue keyPath valueName value =
+    setValue keyPath valueName $ encodeString value
 
 deleteValue :: IsKeyPath a => a -> ValueName -> ExceptT IOError IO ()
 deleteValue keyPath valueName =

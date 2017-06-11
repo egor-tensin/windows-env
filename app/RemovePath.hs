@@ -22,7 +22,7 @@ data Options = Options
     { optName   :: WindowsEnv.VarName
     , optYes    :: Bool
     , optGlobal :: Bool
-    , optPaths  :: [WindowsEnv.VarValue]
+    , optPaths  :: [String]
     } deriving (Eq, Show)
 
 optionParser :: Parser Options
@@ -63,8 +63,14 @@ removePath options = runExceptT doRemovePath >>= either ioError return
     skipPrompt = optYes options
 
     emptyIfMissing e
-        | isDoesNotExistError e = return ""
+        | isDoesNotExistError e = defaultValue
         | otherwise = throwE e
+
+    defaultValue = do
+        expandedPaths <- mapM WindowsEnv.expand pathsToRemove
+        if pathsToRemove == expandedPaths
+            then return $ WindowsEnv.VarValue False ""
+            else return $ WindowsEnv.VarValue True ""
 
     doRemovePath = do
         removePathFrom WindowsEnv.CurrentUser
@@ -73,12 +79,12 @@ removePath options = runExceptT doRemovePath >>= either ioError return
 
     removePathFrom profile = do
         oldValue <- WindowsEnv.query profile varName `catchE` emptyIfMissing
-        let oldPaths = WindowsEnv.pathSplit oldValue
+        let oldPaths = WindowsEnv.pathSplit $ show oldValue
         let newPaths = filter (flip notElem pathsToRemove) oldPaths
         when (length oldPaths /= length newPaths) $ do
-            let newValue = WindowsEnv.pathJoin newPaths
+            let newValue = WindowsEnv.VarValue (WindowsEnv.varValueExpandable oldValue) (WindowsEnv.pathJoin newPaths)
             let promptAnd = if skipPrompt
                 then withoutPrompt
-                else withPrompt $ oldNewMessage profile varName oldValue newValue
+                else withPrompt $ oldNewMessage profile varName (show oldValue) (show newValue)
             let engrave = WindowsEnv.engrave profile varName newValue
             void $ promptAnd engrave

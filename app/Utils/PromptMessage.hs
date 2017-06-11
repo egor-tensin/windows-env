@@ -15,7 +15,7 @@ import Text.Printf (printf)
 
 import qualified WindowsEnv
 
-oldNewMessage :: WindowsEnv.Profile -> WindowsEnv.VarName -> WindowsEnv.VarValue -> WindowsEnv.VarValue -> String
+oldNewMessage :: WindowsEnv.Profile -> WindowsEnv.VarName -> String -> String -> String
 oldNewMessage profile name oldValue newValue =
     descrMsg ++ oldValueMsg ++ newValueMsg
   where
@@ -24,7 +24,7 @@ oldNewMessage profile name oldValue newValue =
     oldValueMsg = printf "\tOld value: %s\n" oldValue
     newValueMsg = printf "\tNew value: %s\n" newValue
 
-newMessage :: WindowsEnv.Profile -> WindowsEnv.VarName -> WindowsEnv.VarValue -> String
+newMessage :: WindowsEnv.Profile -> WindowsEnv.VarName -> String -> String
 newMessage profile name newValue =
     descrMsg ++ newValueMsg
   where

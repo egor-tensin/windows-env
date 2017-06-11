@@ -22,7 +22,7 @@ data Options = Options
     { optYes    :: Bool
     , optGlobal :: Bool
     , optName   :: WindowsEnv.VarName
-    , optValue  :: WindowsEnv.VarValue
+    , optValue  :: String
     } deriving (Eq, Show)
 
 optionParser :: Parser Options
@@ -67,6 +67,6 @@ setEnv options = runExceptT doSetEnv >>= either ioError return
         | skipPrompt = withoutPrompt
         | otherwise  = withPrompt $ newMessage profile varName varValue
 
-    engrave = WindowsEnv.engraveForce profile varName varValue
+    engrave = WindowsEnv.engrave profile varName $ WindowsEnv.VarValue False varValue
 
     doSetEnv = void $ promptAnd engrave

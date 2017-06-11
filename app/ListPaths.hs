@@ -22,7 +22,7 @@ import qualified WindowsEnv
 data WhichPaths = All | ExistingOnly | MissingOnly
                 deriving (Eq, Show)
 
-shouldListPath :: WhichPaths -> WindowsEnv.VarValue -> IO Bool
+shouldListPath :: WhichPaths -> String -> IO Bool
 shouldListPath All = return . const True
 shouldListPath ExistingOnly = doesDirectoryExist
 shouldListPath MissingOnly  = fmap not . doesDirectoryExist
@@ -72,7 +72,7 @@ listPaths options = runExceptT doListPaths >>= either ioError return
     query = queryFrom $ optSource options
 
     queryFrom Environment = lift $ fromMaybe "" <$> lookupEnv varName
-    queryFrom (Registry profile) = WindowsEnv.query profile varName
+    queryFrom (Registry profile) = show <$> WindowsEnv.query profile varName
 
     filterPaths = filterM (shouldListPath whichPaths . WindowsEnv.pathExpanded)
 
