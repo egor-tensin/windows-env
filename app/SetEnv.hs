@@ -55,7 +55,7 @@ setEnv :: Options -> IO ()
 setEnv options = runExceptT doSetEnv >>= either ioError return
   where
     varName = optName options
-    varValue = WindowsEnv.Value False $ optValue options
+    varValue = optValue options
 
     forAllUsers = optGlobal options
     profile
@@ -63,10 +63,16 @@ setEnv options = runExceptT doSetEnv >>= either ioError return
         | otherwise   = WindowsEnv.CurrentUser
 
     skipPrompt = optYes options
-    promptAnd
-        | skipPrompt = withoutPrompt
-        | otherwise  = withPrompt $ newMessage profile varName varValue
 
-    engrave = WindowsEnv.engrave profile varName varValue
+    doSetEnv = do
+        expanded <- WindowsEnv.expand varValue
+        let expandable = expanded == varValue
+        let newValue = WindowsEnv.Value expandable varValue
+        promptAndEngrave newValue
 
-    doSetEnv = void $ promptAnd engrave
+    promptAndEngrave newValue = do
+        let promptAnd = if skipPrompt
+            then withoutPrompt
+            else withPrompt $ newMessage profile varName newValue
+        let engrave = WindowsEnv.engrave profile varName newValue
+        void $ promptAnd engrave
