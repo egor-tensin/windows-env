@@ -34,13 +34,13 @@ module WindowsEnv.Environment
     ) where
 
 import           Control.Monad.Trans.Class  (lift)
-import           Control.Monad.Trans.Except (ExceptT(..))
+import           Control.Monad.Trans.Except (ExceptT(..), catchE, throwE)
 import           Data.List             (intercalate)
 import           Data.List.Split       (splitOn)
 import           Foreign.Marshal.Alloc (allocaBytes)
 import           Foreign.Storable      (sizeOf)
 import           System.Directory      (doesDirectoryExist)
-import           System.IO.Error       (catchIOError)
+import           System.IO.Error       (catchIOError, isDoesNotExistError)
 import qualified System.Win32.Types    as WinAPI
 
 import qualified WindowsEnv.Registry as Registry
@@ -92,9 +92,13 @@ engrave profile name value = do
 
 wipe :: Profile -> VarName -> ExceptT IOError IO ()
 wipe profile name = do
-    ret <- Registry.deleteValue (profileKeyPath profile) name
+    ret <- Registry.deleteValue (profileKeyPath profile) name `catchE` ignoreIfMissing
     lift notifyEnvironmentUpdate
     return ret
+  where
+    ignoreIfMissing e
+        | isDoesNotExistError e = return ()
+        | otherwise = throwE e
 
 pathSep :: String
 pathSep = ";"
