@@ -21,7 +21,7 @@ import Utils.PromptMessage
 data Options = Options
     { optYes    :: Bool
     , optGlobal :: Bool
-    , optName   :: WindowsEnv.VarName
+    , optName   :: WindowsEnv.Name
     , optValue  :: String
     } deriving (Eq, Show)
 
@@ -55,7 +55,7 @@ setEnv :: Options -> IO ()
 setEnv options = runExceptT doSetEnv >>= either ioError return
   where
     varName = optName options
-    varValue = WindowsEnv.VarValue False $ optValue options
+    varValue = WindowsEnv.Value False $ optValue options
 
     forAllUsers = optGlobal options
     profile

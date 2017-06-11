@@ -14,8 +14,8 @@ module WindowsEnv.Environment
     ( Profile(..)
     , profileKeyPath
 
-    , VarName
-    , VarValue(..)
+    , Name
+    , Value(..)
 
     , query
     , engrave
@@ -25,8 +25,8 @@ module WindowsEnv.Environment
     , pathSplit
 
     , expand
-    , pathSplitAndExpand
 
+    , pathSplitAndExpand
     , ExpandedPath(..)
     , pathOriginal
     , pathExpanded
@@ -60,37 +60,34 @@ profileKeyPath AllUsers    = Registry.KeyPath Registry.LocalMachine
     , "Environment"
     ]
 
-type VarName = String
+type Name = String
 
-data VarValue = VarValue
-    { varValueExpandable :: Bool
-    , varValueString :: String
-    } deriving (Eq)
+data Value = Value
+    { valueExpandable :: Bool
+    , valueString :: String
+    } deriving (Eq, Show)
 
-instance Show VarValue where
-    show = varValueString
-
-valueFromRegistry :: Registry.StringValue -> VarValue
+valueFromRegistry :: Registry.StringValue -> Value
 valueFromRegistry (valueType, valueData)
-    | valueType == Registry.TypeString = VarValue False valueData
-    | valueType == Registry.TypeExpandableString = VarValue True valueData
+    | valueType == Registry.TypeString = Value False valueData
+    | valueType == Registry.TypeExpandableString = Value True valueData
     | otherwise = error "WindowsEnv.Environment: unexpected"
 
-valueToRegistry :: VarValue -> Registry.StringValue
+valueToRegistry :: Value -> Registry.StringValue
 valueToRegistry value
-    | varValueExpandable value = (Registry.TypeExpandableString, varValueString value)
-    | otherwise = (Registry.TypeString, varValueString value)
+    | valueExpandable value = (Registry.TypeExpandableString, valueString value)
+    | otherwise = (Registry.TypeString, valueString value)
 
-query :: Profile -> VarName -> ExceptT IOError IO VarValue
+query :: Profile -> Name -> ExceptT IOError IO Value
 query profile name = valueFromRegistry <$> Registry.getStringValue (profileKeyPath profile) name
 
-engrave :: Profile -> VarName -> VarValue -> ExceptT IOError IO ()
+engrave :: Profile -> Name -> Value -> ExceptT IOError IO ()
 engrave profile name value = do
     ret <- Registry.setStringValue (profileKeyPath profile) name $ valueToRegistry value
     lift notifyEnvironmentUpdate
     return ret
 
-wipe :: Profile -> VarName -> ExceptT IOError IO ()
+wipe :: Profile -> Name -> ExceptT IOError IO ()
 wipe profile name = do
     ret <- Registry.deleteValue (profileKeyPath profile) name `catchE` ignoreIfMissing
     lift notifyEnvironmentUpdate
@@ -134,18 +131,18 @@ data ExpandedPath = UnexpandedPath String
 
 pathOriginal :: ExpandedPath -> String
 pathOriginal (UnexpandedPath path) = path
-pathOriginal (ExpandedPath original expanded) = original
+pathOriginal (ExpandedPath original _) = original
 
 pathExpanded :: ExpandedPath -> String
 pathExpanded (UnexpandedPath path) = path
-pathExpanded (ExpandedPath original expanded) = expanded
+pathExpanded (ExpandedPath _ expanded) = expanded
 
 pathExists :: ExpandedPath -> IO Bool
 pathExists = doesDirectoryExist . pathExpanded
 
-pathSplitAndExpand :: VarValue -> ExceptT IOError IO [ExpandedPath]
+pathSplitAndExpand :: Value -> ExceptT IOError IO [ExpandedPath]
 pathSplitAndExpand value
-    | varValueExpandable value = do
+    | valueExpandable value = do
         expanded <- expandOnce
         zipWith ExpandedPath split <$>
             if length expanded == length split
@@ -153,7 +150,7 @@ pathSplitAndExpand value
                 else expandEach
     | otherwise = return $ map UnexpandedPath $ pathSplit joined
   where
-    joined = varValueString value
+    joined = valueString value
     split = pathSplit joined
     expandOnce = pathSplit <$> expand joined
     expandEach = mapM expand split

@@ -20,7 +20,7 @@ import Utils.Prompt
 import Utils.PromptMessage
 
 data Options = Options
-    { optName    :: WindowsEnv.VarName
+    { optName    :: WindowsEnv.Name
     , optYes     :: Bool
     , optGlobal  :: Bool
     , optPrepend :: Bool
@@ -83,15 +83,15 @@ addPath options = runExceptT doAddPath >>= either ioError return
     defaultValue = do
         expandedPaths <- mapM WindowsEnv.expand pathsToAdd
         if pathsToAdd == expandedPaths
-            then return $ WindowsEnv.VarValue False ""
-            else return $ WindowsEnv.VarValue True ""
+            then return $ WindowsEnv.Value False ""
+            else return $ WindowsEnv.Value True ""
 
     doAddPath = do
         oldValue <- WindowsEnv.query profile varName `catchE` emptyIfMissing
         let oldPaths = WindowsEnv.pathSplit $ show oldValue
         let newPaths = pathsToAdd \\ oldPaths
         unless (null newPaths) $ do
-            let newValue = WindowsEnv.VarValue (WindowsEnv.varValueExpandable oldValue) $ WindowsEnv.pathJoin (mergePaths oldPaths newPaths)
+            let newValue = WindowsEnv.Value (WindowsEnv.valueExpandable oldValue) $ WindowsEnv.pathJoin (mergePaths oldPaths newPaths)
             promptAndEngrave oldValue newValue
 
     promptAndEngrave oldValue newValue = do

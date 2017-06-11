@@ -21,7 +21,7 @@ import Utils.PromptMessage
 data Options = Options
     { optYes    :: Bool
     , optGlobal :: Bool
-    , optName   :: WindowsEnv.VarName
+    , optName   :: WindowsEnv.Name
     } deriving (Eq, Show)
 
 optionParser :: Parser Options

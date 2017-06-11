@@ -19,7 +19,7 @@ import Utils.Prompt
 import Utils.PromptMessage
 
 data Options = Options
-    { optName   :: WindowsEnv.VarName
+    { optName   :: WindowsEnv.Name
     , optYes    :: Bool
     , optGlobal :: Bool
     , optPaths  :: [String]
@@ -69,8 +69,8 @@ removePath options = runExceptT doRemovePath >>= either ioError return
     defaultValue = do
         expandedPaths <- mapM WindowsEnv.expand pathsToRemove
         if pathsToRemove == expandedPaths
-            then return $ WindowsEnv.VarValue False ""
-            else return $ WindowsEnv.VarValue True ""
+            then return $ WindowsEnv.Value False ""
+            else return $ WindowsEnv.Value True ""
 
     doRemovePath = do
         removePathFrom WindowsEnv.CurrentUser
@@ -82,7 +82,7 @@ removePath options = runExceptT doRemovePath >>= either ioError return
         let oldPaths = WindowsEnv.pathSplit $ show oldValue
         let newPaths = filter (flip notElem pathsToRemove) oldPaths
         when (length oldPaths /= length newPaths) $ do
-            let newValue = WindowsEnv.VarValue (WindowsEnv.varValueExpandable oldValue) (WindowsEnv.pathJoin newPaths)
+            let newValue = WindowsEnv.Value (WindowsEnv.valueExpandable oldValue) (WindowsEnv.pathJoin newPaths)
             let promptAnd = if skipPrompt
                 then withoutPrompt
                 else withPrompt $ oldNewMessage profile varName oldValue newValue

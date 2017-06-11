@@ -30,7 +30,7 @@ data Source = Environment | Registry WindowsEnv.Profile
             deriving (Eq, Show)
 
 data Options = Options
-    { optName       :: WindowsEnv.VarName
+    { optName       :: WindowsEnv.Name
     , optWhichPaths :: WhichPaths
     , optSource     :: Source
     } deriving (Eq, Show)
@@ -70,12 +70,12 @@ listPaths options = runExceptT doListPaths >>= either ioError return
 
     query = queryFrom $ optSource options
 
-    queryFrom Environment = lift $ WindowsEnv.VarValue False <$> fromMaybe "" <$> lookupEnv varName
+    queryFrom Environment = lift $ WindowsEnv.Value False <$> fromMaybe "" <$> lookupEnv varName
     queryFrom (Registry profile) = WindowsEnv.query profile varName
 
     doListPaths = do
-        value <- query
-        split <- WindowsEnv.pathSplitAndExpand value
+        varValue <- query
+        split <- WindowsEnv.pathSplitAndExpand varValue
         lift $ do
             wanted <- filterM (shouldListPath whichPaths) split
             mapM_ (putStrLn . WindowsEnv.pathOriginal) wanted
