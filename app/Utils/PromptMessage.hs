@@ -15,14 +15,19 @@ import Text.Printf (printf)
 
 import qualified WindowsEnv
 
+valueType :: WindowsEnv.Value -> String
+valueType value
+    | WindowsEnv.valueExpandable value = "REG_EXPAND_SZ"
+    | otherwise = "REG_SZ"
+
 oldNewMessage :: WindowsEnv.Profile -> WindowsEnv.Name -> WindowsEnv.Value -> WindowsEnv.Value -> String
 oldNewMessage profile name oldValue newValue =
     descrMsg ++ oldValueMsg ++ newValueMsg
   where
     profileKey = WindowsEnv.profileKeyPath profile
     descrMsg = printf "Saving variable '%s' to '%s'...\n" name $ show profileKey
-    oldValueMsg = printf "\tOld value: %s\n" $ WindowsEnv.valueString oldValue
-    newValueMsg = printf "\tNew value: %s\n" $ WindowsEnv.valueString newValue
+    oldValueMsg = printf "\tOld value (%s): %s\n" (valueType oldValue) (WindowsEnv.valueString oldValue)
+    newValueMsg = printf "\tNew value (%s): %s\n" (valueType newValue) (WindowsEnv.valueString newValue)
 
 newMessage :: WindowsEnv.Profile -> WindowsEnv.Name -> WindowsEnv.Value -> String
 newMessage profile name newValue =
@@ -30,7 +35,7 @@ newMessage profile name newValue =
   where
     profileKey = WindowsEnv.profileKeyPath profile
     descrMsg = printf "Saving variable '%s' to '%s'...\n" name $ show profileKey
-    newValueMsg = printf "\tNew value: %s\n" $ WindowsEnv.valueString newValue
+    newValueMsg = printf "\tNew value (%s): %s\n" (valueType newValue) (WindowsEnv.valueString newValue)
 
 wipeMessage :: WindowsEnv.Profile -> WindowsEnv.Name -> String
 wipeMessage profile name =
