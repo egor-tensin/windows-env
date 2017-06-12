@@ -63,13 +63,12 @@ addPath options = runExceptT doAddPath >>= either ioError return
   where
     varName = optName options
     pathsToAdd = nub $ optPaths options
-
     forAllUsers = optGlobal options
+    skipPrompt = optYes options
+
     profile
         | forAllUsers = WindowsEnv.AllUsers
         | otherwise   = WindowsEnv.CurrentUser
-
-    skipPrompt = optYes options
 
     prepend = optPrepend options
     mergePaths old new
@@ -88,10 +87,13 @@ addPath options = runExceptT doAddPath >>= either ioError return
 
     doAddPath = do
         oldValue <- WindowsEnv.query profile varName `catchE` emptyIfMissing
-        let oldPaths = WindowsEnv.pathSplit $ show oldValue
-        let newPaths = pathsToAdd \\ oldPaths
-        unless (null newPaths) $ do
-            let newValue = WindowsEnv.Value (WindowsEnv.valueExpandable oldValue) $ WindowsEnv.pathJoin (mergePaths oldPaths newPaths)
+        let expandable = WindowsEnv.valueExpandable oldValue
+        let joined = WindowsEnv.valueString oldValue
+        let split = WindowsEnv.pathSplit joined
+        let missing = pathsToAdd \\ split
+        unless (null missing) $ do
+            let merged = mergePaths split missing
+            let newValue = WindowsEnv.Value expandable (WindowsEnv.pathJoin merged)
             promptAndEngrave oldValue newValue
 
     promptAndEngrave oldValue newValue = do
