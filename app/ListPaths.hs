@@ -70,7 +70,9 @@ listPaths options = runExceptT doListPaths >>= either ioError return
 
     query = queryFrom $ optSource options
 
-    queryFrom Environment = lift $ WindowsEnv.Value False <$> fromMaybe "" <$> lookupEnv varName
+    queryFrom Environment = lift $ WindowsEnv.Value False
+        <$> fromMaybe ""
+        <$> lookupEnv varName
     queryFrom (Registry profile) = WindowsEnv.query profile varName
 
     doListPaths = do

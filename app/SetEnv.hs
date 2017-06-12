@@ -56,13 +56,12 @@ setEnv options = runExceptT doSetEnv >>= either ioError return
   where
     varName = optName options
     varValue = optValue options
-
     forAllUsers = optGlobal options
+    skipPrompt = optYes options
+
     profile
         | forAllUsers = WindowsEnv.AllUsers
         | otherwise   = WindowsEnv.CurrentUser
-
-    skipPrompt = optYes options
 
     doSetEnv = do
         expanded <- WindowsEnv.expand varValue

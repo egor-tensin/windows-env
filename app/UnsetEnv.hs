@@ -50,17 +50,15 @@ unsetEnv :: Options -> IO ()
 unsetEnv options = runExceptT doUnsetEnv >>= either ioError return
   where
     varName = optName options
-
     forAllUsers = optGlobal options
+    skipPrompt = optYes options
+
     profile
         | forAllUsers = WindowsEnv.AllUsers
         | otherwise   = WindowsEnv.CurrentUser
 
-    skipPrompt = optYes options
+    doUnsetEnv = void $ promptAnd $ WindowsEnv.wipe profile varName
+
     promptAnd
         | skipPrompt = withoutPrompt
         | otherwise  = withPrompt $ wipeMessage profile varName
-
-    wipe = WindowsEnv.wipe profile varName
-
-    doUnsetEnv = void $ promptAnd wipe

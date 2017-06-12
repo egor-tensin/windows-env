@@ -72,7 +72,8 @@ removePath options = runExceptT doRemovePath >>= either ioError return
     removePathFrom profile = do
         oldValue <- WindowsEnv.query profile varName
         let expandable = WindowsEnv.valueExpandable oldValue
-        let split = WindowsEnv.pathSplit $ WindowsEnv.valueString oldValue
+        let joined = WindowsEnv.valueString oldValue
+        let split = WindowsEnv.pathSplit joined
         let remaining = filter (flip notElem pathsToRemove) split
         when (length split /= length remaining) $ do
             let newValue = WindowsEnv.Value expandable (WindowsEnv.pathJoin remaining)
