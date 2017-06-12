@@ -57,34 +57,30 @@ removePath options = runExceptT doRemovePath >>= either ioError return
   where
     varName = optName options
     pathsToRemove = optPaths options
-
     forAllUsers = optGlobal options
-
     skipPrompt = optYes options
 
-    emptyIfMissing e
-        | isDoesNotExistError e = defaultValue
+    ignoreMissing e
+        | isDoesNotExistError e = return ()
         | otherwise = throwE e
 
-    defaultValue = do
-        expandedPaths <- mapM WindowsEnv.expand pathsToRemove
-        if pathsToRemove == expandedPaths
-            then return $ WindowsEnv.Value False ""
-            else return $ WindowsEnv.Value True ""
-
     doRemovePath = do
-        removePathFrom WindowsEnv.CurrentUser
+        removePathFrom WindowsEnv.CurrentUser `catchE` ignoreMissing
         when forAllUsers $
-            removePathFrom WindowsEnv.AllUsers
+            removePathFrom WindowsEnv.AllUsers `catchE` ignoreMissing
 
     removePathFrom profile = do
-        oldValue <- WindowsEnv.query profile varName `catchE` emptyIfMissing
-        let oldPaths = WindowsEnv.pathSplit $ show oldValue
-        let newPaths = filter (flip notElem pathsToRemove) oldPaths
-        when (length oldPaths /= length newPaths) $ do
-            let newValue = WindowsEnv.Value (WindowsEnv.valueExpandable oldValue) (WindowsEnv.pathJoin newPaths)
-            let promptAnd = if skipPrompt
-                then withoutPrompt
-                else withPrompt $ oldNewMessage profile varName oldValue newValue
-            let engrave = WindowsEnv.engrave profile varName newValue
-            void $ promptAnd engrave
+        oldValue <- WindowsEnv.query profile varName
+        let expandable = WindowsEnv.valueExpandable oldValue
+        let split = WindowsEnv.pathSplit $ WindowsEnv.valueString oldValue
+        let remaining = filter (flip notElem pathsToRemove) split
+        when (length split /= length remaining) $ do
+            let newValue = WindowsEnv.Value expandable (WindowsEnv.pathJoin remaining)
+            promptAndEngrave profile oldValue newValue
+
+    promptAndEngrave profile oldValue newValue = do
+        let promptAnd = if skipPrompt
+            then withoutPrompt
+            else withPrompt $ oldNewMessage profile varName oldValue newValue
+        let engrave = WindowsEnv.engrave profile varName newValue
+        void $ promptAnd engrave
