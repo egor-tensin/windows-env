@@ -66,7 +66,7 @@ setEnv options = runExceptT doSetEnv >>= either ioError return
 
     doSetEnv = do
         expanded <- WindowsEnv.expand varValue
-        let expandable = expanded == varValue
+        let expandable = expanded /= varValue
         let newValue = WindowsEnv.Value expandable varValue
         promptAndEngrave newValue
 
