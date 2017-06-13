@@ -50,7 +50,7 @@ import           Foreign.ForeignPtr    (withForeignPtr)
 import           Foreign.Marshal.Alloc (alloca, allocaBytes)
 import           Foreign.Marshal.Array (peekArray, pokeArray)
 import           Foreign.Storable      (peek, poke)
-import           System.IO.Error       (catchIOError)
+import           System.IO.Error       (tryIOError)
 import qualified System.Win32.Types    as WinAPI
 import qualified System.Win32.Registry as WinAPI
 
@@ -63,16 +63,12 @@ closeKey :: Handle -> IO ()
 closeKey = WinAPI.regCloseKey
 
 openKey :: IsKeyPath a => a -> IO (Either IOError Handle)
-openKey keyPath = catchIOError doOpenKey wrapError
-  where
-    doOpenKey = Right <$> openKeyUnsafe keyPath
-    wrapError = return . Left
+openKey keyPath = tryIOError $ openKeyUnsafe keyPath
 
 withHandle :: IsKeyPath a => a -> (Handle -> IO b) -> ExceptT IOError IO b
-withHandle keyPath f = ExceptT $ catchIOError doWithHandle wrapError
+withHandle keyPath f = ExceptT $ tryIOError doWithHandle
   where
-    doWithHandle = Right <$> bracket (openKeyUnsafe keyPath) closeKey f
-    wrapError = return . Left
+    doWithHandle = bracket (openKeyUnsafe keyPath) closeKey f
 
 data RootKey = CurrentUser
              | LocalMachine

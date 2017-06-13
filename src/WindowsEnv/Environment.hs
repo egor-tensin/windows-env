@@ -34,7 +34,7 @@ import           Data.List             (intercalate)
 import           Data.List.Split       (splitOn)
 import           Foreign.Marshal.Alloc (allocaBytes)
 import           Foreign.Storable      (sizeOf)
-import           System.IO.Error       (catchIOError, isDoesNotExistError)
+import           System.IO.Error       (isDoesNotExistError, tryIOError)
 import qualified System.Win32.Types    as WinAPI
 
 import qualified WindowsEnv.Registry as Registry
@@ -108,7 +108,7 @@ foreign import WINDOWS_ENV_CCALL unsafe "Windows.h ExpandEnvironmentStringsW"
     c_ExpandEnvironmentStrings :: WinAPI.LPCTSTR -> WinAPI.LPTSTR -> WinAPI.DWORD -> IO WinAPI.ErrCode
 
 expand :: String -> ExceptT IOError IO String
-expand value = ExceptT $ catchIOError (Right <$> doExpand) (return . Left)
+expand value = ExceptT $ tryIOError doExpand
   where
     doExpandIn valuePtr bufferPtr bufferLength = do
         newBufferLength <- WinAPI.failIfZero "ExpandEnvironmentStringsW" $
