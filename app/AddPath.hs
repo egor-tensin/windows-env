@@ -7,15 +7,16 @@
 
 module Main (main) where
 
-import Control.Monad   (unless, void)
+import Control.Monad   (when, void)
 import Control.Monad.Trans.Except (catchE, runExceptT, throwE)
-import Data.List       ((\\), nub)
+import Data.List       (nub)
 import System.IO.Error (ioError, isDoesNotExistError)
 
 import Options.Applicative
 
 import qualified WindowsEnv
 
+import Utils.Path
 import Utils.Prompt
 import Utils.PromptMessage
 
@@ -71,30 +72,27 @@ addPath options = runExceptT doAddPath >>= either ioError return
         | otherwise   = WindowsEnv.CurrentUser
 
     prepend = optPrepend options
-    mergePaths old new
+    appendPaths old new
         | prepend = new ++ old
         | otherwise = old ++ new
 
     emptyIfMissing e
-        | isDoesNotExistError e = defaultValue
+        | isDoesNotExistError e = return $ WindowsEnv.Value False ""
         | otherwise = throwE e
 
-    defaultValue = do
-        expandedPaths <- mapM WindowsEnv.expand pathsToAdd
-        if pathsToAdd == expandedPaths
-            then return $ WindowsEnv.Value False ""
-            else return $ WindowsEnv.Value True ""
-
     doAddPath = do
-        oldValue <- WindowsEnv.query profile varName `catchE` emptyIfMissing
-        let expandable = WindowsEnv.valueExpandable oldValue
-        let joined = WindowsEnv.valueString oldValue
-        let split = WindowsEnv.pathSplit joined
-        let missing = pathsToAdd \\ split
-        unless (null missing) $ do
-            let merged = mergePaths split missing
-            let newValue = WindowsEnv.Value expandable (WindowsEnv.pathJoin merged)
-            promptAndEngrave oldValue newValue
+        newPaths <- pathExpandAll pathsToAdd
+        let newExpandable = pathAnyExpanded newPaths
+        srcValue <- WindowsEnv.query profile varName `catchE` emptyIfMissing
+        let srcExpandable = WindowsEnv.valueExpandable srcValue
+        let destExpandable = newExpandable || srcExpandable
+        srcPaths <- pathExpandValue srcValue
+            { WindowsEnv.valueExpandable = destExpandable }
+        let destPaths = appendPaths srcPaths $ filter (`notElem` srcPaths) newPaths
+        let destPathsJoined = WindowsEnv.pathJoin $ map pathOriginal destPaths
+        let destValue = WindowsEnv.Value destExpandable destPathsJoined
+        when (srcValue /= destValue) $ do
+            promptAndEngrave srcValue destValue
 
     promptAndEngrave oldValue newValue = do
         let promptAnd = if skipPrompt

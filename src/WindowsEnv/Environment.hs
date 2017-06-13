@@ -25,12 +25,7 @@ module WindowsEnv.Environment
     , pathSplit
 
     , expand
-
-    , pathSplitAndExpand
-    , ExpandedPath(..)
-    , pathOriginal
-    , pathExpanded
-    , pathExists
+    , expandAll
     ) where
 
 import           Control.Monad.Trans.Class  (lift)
@@ -39,7 +34,6 @@ import           Data.List             (intercalate)
 import           Data.List.Split       (splitOn)
 import           Foreign.Marshal.Alloc (allocaBytes)
 import           Foreign.Storable      (sizeOf)
-import           System.Directory      (doesDirectoryExist)
 import           System.IO.Error       (catchIOError, isDoesNotExistError)
 import qualified System.Win32.Types    as WinAPI
 
@@ -125,32 +119,5 @@ expand value = ExceptT $ catchIOError (Right <$> doExpand) (return . Left)
             else WinAPI.peekTString bufferPtr
     doExpand = WinAPI.withTString value $ \valuePtr -> doExpandIn valuePtr WinAPI.nullPtr 0
 
-data ExpandedPath = UnexpandedPath String
-                  | ExpandedPath String String
-                  deriving (Eq, Show)
-
-pathOriginal :: ExpandedPath -> String
-pathOriginal (UnexpandedPath path) = path
-pathOriginal (ExpandedPath original _) = original
-
-pathExpanded :: ExpandedPath -> String
-pathExpanded (UnexpandedPath path) = path
-pathExpanded (ExpandedPath _ expanded) = expanded
-
-pathExists :: ExpandedPath -> IO Bool
-pathExists = doesDirectoryExist . pathExpanded
-
-pathSplitAndExpand :: Value -> ExceptT IOError IO [ExpandedPath]
-pathSplitAndExpand value
-    | valueExpandable value = do
-        expanded <- expandOnce
-        zipWith ExpandedPath split <$>
-            if length expanded == length split
-                then return expanded
-                else expandEach
-    | otherwise = return $ map UnexpandedPath $ pathSplit joined
-  where
-    joined = valueString value
-    split = pathSplit joined
-    expandOnce = pathSplit <$> expand joined
-    expandEach = mapM expand split
+expandAll :: [String] -> ExceptT IOError IO [String]
+expandAll = mapM expand

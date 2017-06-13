@@ -37,7 +37,7 @@ library
 executable addpath
   hs-source-dirs:     app
   main-is:            AddPath.hs
-  other-modules:      Utils.Prompt, Utils.PromptMessage
+  other-modules:      Utils.Path, Utils.Prompt, Utils.PromptMessage
   ghc-options:        -Wall -Werror -threaded -rtsopts -with-rtsopts=-N
   build-depends:      base
                     , optparse-applicative
@@ -48,9 +48,10 @@ executable addpath
 executable paths
   hs-source-dirs:     app
   main-is:            ListPaths.hs
-  other-modules:      Utils.Prompt, Utils.PromptMessage
+  other-modules:      Utils.Path, Utils.Prompt, Utils.PromptMessage
   ghc-options:        -Wall -Werror -threaded -rtsopts -with-rtsopts=-N
   build-depends:      base
+                    , directory
                     , optparse-applicative
                     , transformers
                     , windows-env
