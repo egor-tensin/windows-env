@@ -74,7 +74,7 @@ removePath options = runExceptT doRemovePath >>= either ioError return
         let expandable = WindowsEnv.valueExpandable oldValue
         let joined = WindowsEnv.valueString oldValue
         let split = WindowsEnv.pathSplit joined
-        let remaining = filter (flip notElem pathsToRemove) split
+        let remaining = filter (`notElem` pathsToRemove) split
         when (length split /= length remaining) $ do
             let newValue = WindowsEnv.Value expandable (WindowsEnv.pathJoin remaining)
             promptAndEngrave profile oldValue newValue

@@ -91,8 +91,7 @@ addPath options = runExceptT doAddPath >>= either ioError return
         let destPaths = appendPaths srcPaths $ filter (`notElem` srcPaths) newPaths
         let destPathsJoined = WindowsEnv.pathJoin $ map pathOriginal destPaths
         let destValue = WindowsEnv.Value destExpandable destPathsJoined
-        when (srcValue /= destValue) $ do
-            promptAndEngrave srcValue destValue
+        when (srcValue /= destValue) $ promptAndEngrave srcValue destValue
 
     promptAndEngrave oldValue newValue = do
         let promptAnd = if skipPrompt

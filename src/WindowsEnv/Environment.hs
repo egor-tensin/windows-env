@@ -113,7 +113,7 @@ expand value = ExceptT $ catchIOError (Right <$> doExpand) (return . Left)
     doExpandIn valuePtr bufferPtr bufferLength = do
         newBufferLength <- WinAPI.failIfZero "ExpandEnvironmentStringsW" $
             c_ExpandEnvironmentStrings valuePtr bufferPtr bufferLength
-        let newBufferSize = (fromIntegral newBufferLength) * sizeOf (undefined :: WinAPI.TCHAR)
+        let newBufferSize = fromIntegral newBufferLength * sizeOf (undefined :: WinAPI.TCHAR)
         if newBufferLength > bufferLength
             then allocaBytes newBufferSize $ \newBufferPtr -> doExpandIn valuePtr newBufferPtr newBufferLength
             else WinAPI.peekTString bufferPtr
