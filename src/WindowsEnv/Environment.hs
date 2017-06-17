@@ -100,11 +100,11 @@ pathSplit = filter (not . null) . splitOn pathSep
 pathJoin :: [String] -> String
 pathJoin = intercalate pathSep . filter (not . null)
 
-#include "ccall.h"
+#include "windows_cconv.h"
 
 -- ExpandEnvironmentStrings isn't provided by Win32 (as of version 2.4.0.0).
 
-foreign import WINDOWS_ENV_CCALL unsafe "Windows.h ExpandEnvironmentStringsW"
+foreign import WINDOWS_CCONV unsafe "Windows.h ExpandEnvironmentStringsW"
     c_ExpandEnvironmentStrings :: WinAPI.LPCTSTR -> WinAPI.LPTSTR -> WinAPI.DWORD -> IO WinAPI.ErrCode
 
 expand :: String -> ExceptT IOError IO String

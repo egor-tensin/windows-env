@@ -16,11 +16,11 @@ import qualified Graphics.Win32.GDI.Types as WinAPI
 import qualified Graphics.Win32.Message   as WinAPI
 import qualified System.Win32.Types       as WinAPI
 
-#include "ccall.h"
+#include "windows_cconv.h"
 
 -- SendNotifyMessage isn't provided by Win32 (as of version 2.4.0.0).
 
-foreign import WINDOWS_ENV_CCALL "Windows.h SendNotifyMessageW"
+foreign import WINDOWS_CCONV "Windows.h SendNotifyMessageW"
     c_SendNotifyMessage :: WinAPI.HWND -> WinAPI.WindowMessage -> WinAPI.WPARAM -> WinAPI.LPARAM -> IO WinAPI.LRESULT
 
 notifyEnvironmentUpdate :: IO ()

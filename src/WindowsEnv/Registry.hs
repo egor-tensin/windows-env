@@ -145,17 +145,17 @@ decodeString (valueType, valueData) = (valueType, T.unpack dropLastZero)
         | otherwise = T.takeWhile (/= '\0') text
     text = decodeUtf16LE valueData
 
-#include "ccall.h"
+#include "windows_cconv.h"
 
 -- These aren't provided by Win32 (as of version 2.4.0.0).
 
-foreign import WINDOWS_ENV_CCALL unsafe "Windows.h RegQueryValueExW"
+foreign import WINDOWS_CCONV unsafe "Windows.h RegQueryValueExW"
     c_RegQueryValueEx :: WinAPI.PKEY -> WinAPI.LPCTSTR -> WinAPI.LPDWORD -> WinAPI.LPDWORD -> WinAPI.LPBYTE -> WinAPI.LPDWORD -> IO WinAPI.ErrCode
 
-foreign import WINDOWS_ENV_CCALL unsafe "Windows.h RegSetValueExW"
+foreign import WINDOWS_CCONV unsafe "Windows.h RegSetValueExW"
     c_RegSetValueEx :: WinAPI.PKEY -> WinAPI.LPCTSTR -> WinAPI.DWORD -> WinAPI.DWORD -> WinAPI.LPBYTE -> WinAPI.DWORD -> IO WinAPI.ErrCode
 
-foreign import WINDOWS_ENV_CCALL unsafe "Windows.h RegGetValueW"
+foreign import WINDOWS_CCONV unsafe "Windows.h RegGetValueW"
     c_RegGetValue :: WinAPI.PKEY -> WinAPI.LPCTSTR -> WinAPI.LPCTSTR -> WinAPI.DWORD -> WinAPI.LPDWORD -> WinAPI.LPBYTE -> WinAPI.LPDWORD -> IO WinAPI.ErrCode
 
 queryValue :: IsKeyPath a => a -> ValueName -> ExceptT IOError IO Value
