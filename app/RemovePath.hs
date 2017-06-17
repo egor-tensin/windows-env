@@ -9,6 +9,7 @@ module Main (main) where
 
 import Control.Monad   (void, when)
 import Control.Monad.Trans.Except (catchE, runExceptT, throwE)
+import Data.Monoid     ((<>))
 import System.IO.Error (ioError, isDoesNotExistError)
 
 import Options.Applicative
