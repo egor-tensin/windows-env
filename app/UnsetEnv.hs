@@ -10,10 +10,12 @@ module Main (main) where
 import Control.Monad   (void)
 import Control.Monad.Trans.Except (runExceptT)
 import Data.Monoid     ((<>))
+import Data.Version    (showVersion)
 import System.IO.Error (ioError)
 
 import Options.Applicative
 
+import qualified Paths_windows_env as Meta
 import qualified WindowsEnv
 
 import Utils.Prompt
@@ -44,8 +46,13 @@ optionParser = Options
 main :: IO ()
 main = execParser parser >>= unsetEnv
   where
-    parser = info (helper <*> optionParser) $
-        fullDesc <> progDesc "Delete environment variables"
+    parser = info (helper <*> versioner <*> optionParser)
+         $ fullDesc
+        <> progDesc "Delete environment variables"
+    versioner = infoOption (showVersion Meta.version)
+         $ long "version"
+        <> help "Show version"
+        <> hidden
 
 unsetEnv :: Options -> IO ()
 unsetEnv options = runExceptT doUnsetEnv >>= either ioError return

@@ -10,10 +10,12 @@ module Main (main) where
 import Control.Monad   (void, when)
 import Control.Monad.Trans.Except (catchE, runExceptT, throwE)
 import Data.Monoid     ((<>))
+import Data.Version    (showVersion)
 import System.IO.Error (ioError, isDoesNotExistError)
 
 import Options.Applicative
 
+import qualified Paths_windows_env as Meta
 import qualified WindowsEnv
 
 import Utils.Prompt
@@ -50,8 +52,13 @@ optionParser = Options
 main :: IO ()
 main = execParser parser >>= removePath
   where
-    parser = info (helper <*> optionParser) $
-        fullDesc <> progDesc "Remove directories from your PATH"
+    parser = info (helper <*> versioner <*> optionParser)
+         $ fullDesc
+        <> progDesc "Remove directories from your PATH"
+    versioner = infoOption (showVersion Meta.version)
+         $ long "version"
+        <> help "Show version"
+        <> hidden
 
 removePath :: Options -> IO ()
 removePath options = runExceptT doRemovePath >>= either ioError return

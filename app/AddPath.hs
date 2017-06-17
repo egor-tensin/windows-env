@@ -9,12 +9,14 @@ module Main (main) where
 
 import Control.Monad   (when, void)
 import Control.Monad.Trans.Except (catchE, runExceptT, throwE)
-import Data.Monoid     ((<>))
 import Data.List       (nub)
+import Data.Monoid     ((<>))
+import Data.Version    (showVersion)
 import System.IO.Error (ioError, isDoesNotExistError)
 
 import Options.Applicative
 
+import qualified Paths_windows_env as Meta
 import qualified WindowsEnv
 
 import Utils.Path
@@ -57,8 +59,13 @@ optionParser = Options
 main :: IO ()
 main = execParser parser >>= addPath
   where
-    parser = info (helper <*> optionParser) $
-        fullDesc <> progDesc "Add directories to your PATH"
+    parser = info (helper <*> versioner <*> optionParser)
+         $ fullDesc
+        <> progDesc "Add directories to your PATH"
+    versioner = infoOption (showVersion Meta.version)
+         $ long "version"
+        <> help "Show version"
+        <> hidden
 
 addPath :: Options -> IO ()
 addPath options = runExceptT doAddPath >>= either ioError return

@@ -12,12 +12,14 @@ import Control.Monad.Trans.Class  (lift)
 import Control.Monad.Trans.Except (runExceptT)
 import Data.Maybe         (fromMaybe)
 import Data.Monoid        ((<>))
+import Data.Version       (showVersion)
 import System.Directory   (doesDirectoryExist)
 import System.Environment (lookupEnv)
 import System.IO.Error    (ioError)
 
 import Options.Applicative
 
+import qualified Paths_windows_env as Meta
 import qualified WindowsEnv
 
 import Utils.Path
@@ -63,8 +65,13 @@ optionParser = Options
 main :: IO ()
 main = execParser parser >>= listPaths
   where
-    parser = info (helper <*> optionParser) $
-        fullDesc <> progDesc "List directories in your PATH"
+    parser = info (helper <*> versioner <*> optionParser)
+         $ fullDesc
+        <> progDesc "List directories in your PATH"
+    versioner = infoOption (showVersion Meta.version)
+         $ long "version"
+        <> help "Show version"
+        <> hidden
 
 listPaths :: Options -> IO ()
 listPaths options = runExceptT doListPaths >>= either ioError return
