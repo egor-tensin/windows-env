@@ -23,6 +23,16 @@ Using [stack]:
 
 [stack]: http://docs.haskellstack.org/en/stable/README/
 
+To prepare for making a release the following commands might be useful:
+
+```
+> stack build --install-ghc --copy-bins --local-bin-path ..\windows-env-x86 --arch i386
+...
+
+> stack build --install-ghc --copy-bins --local-bin-path ..\windows-env-x64 --arch x86_64
+...
+```
+
 Installation
 ------------
 
