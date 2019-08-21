@@ -1,0 +1,8 @@
+version: '{build}'
+
+platform:
+  - i386
+  - x86_64
+
+build_script:
+  - ps: .\.appveyor\build.ps1
