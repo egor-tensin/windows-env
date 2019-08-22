@@ -3,6 +3,7 @@ param(
 )
 
 $ErrorActionPreference = "Stop";
+Set-PSDebug -Strict
 
 function Invoke-Exe {
     param(
@@ -27,10 +28,13 @@ function Test-AppVeyor {
     return Test-Path env:APPVEYOR
 }
 
+function Set-AppVeyorDefaults {
+    $script:Platform = $env:PLATFORM
+}
+
 function Get-StackUrl {
     param(
-        [Parameter(Mandatory=$true)]
-        [string] $Platform
+        [string] $Platform = $env:PLATFORM
     )
 
     if ($Platform -eq 'x86_64') {
@@ -60,14 +64,20 @@ function Build-Project {
     Invoke-Exe { C:\sr\stack.exe build --install-ghc --arch $Platform }
 }
 
-if (Test-AppVeyor) {
-    $cwd = pwd
-    $Platform = $env:PLATFORM
+function Build-ProjectAppVeyor {
+    if (Test-AppVeyor) {
+        Set-AppVeyorDefaults
+        $appveyor_cwd = pwd
+    }
+    
+    try {
+        Install-Stack -Platform $script:Platform
+        Build-Project -Platform $script:Platform
+    } finally {
+        if (Test-AppVeyor) {
+            cd $appveyor_cwd
+        }
+    }
 }
 
-Install-Stack -Platform $Platform
-Build-Project -Platform $Platform
-
-if (Test-AppVeyor) {
-    cd $cwd
-}
+Build-ProjectAppVeyor
