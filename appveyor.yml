@@ -1,8 +1,15 @@
 version: '{build}'
 
+environment:
+  STACK_ROOT: C:\sr
+
 platform:
   - i386
   - x86_64
 
+before_build:
+  - curl.exe --silent --show-error --output C:\stack.zip --location --insecure -- "https://get.haskellstack.org/stable/windows-%PLATFORM%.zip"
+  - 7z.exe x "-o%STACK_ROOT%" C:\stack.zip
+
 build_script:
-  - ps: .\.appveyor\build.ps1
+  - '"%STACK_ROOT%\stack.exe" build --install-ghc --arch "%PLATFORM%"'
