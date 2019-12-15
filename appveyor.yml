@@ -2,6 +2,7 @@ version: '{build}'
 
 environment:
   STACK_ROOT: C:\sr
+  install_dir: C:\Projects\install\windows-env
 
 platform:
   - i386
@@ -12,4 +13,8 @@ before_build:
   - 7z.exe x "-o%STACK_ROOT%" C:\stack.zip
 
 build_script:
-  - '"%STACK_ROOT%\stack.exe" build --install-ghc --arch "%PLATFORM%"'
+  - '"%STACK_ROOT%\stack.exe" build --install-ghc --copy-bins --local-bin-path "%install_dir%" --arch "%PLATFORM%"'
+
+after_build:
+  - 7z.exe a "%APPVEYOR_PROJECT_NAME%-%PLATFORM%.zip" "%install_dir%"
+  - appveyor.exe PushArtifact "%APPVEYOR_PROJECT_NAME%-%PLATFORM%.zip"
