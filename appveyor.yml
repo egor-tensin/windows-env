@@ -9,11 +9,24 @@ platform:
   - x86_64
 
 before_build:
-  - curl.exe --silent --show-error --output C:\stack.zip --location --insecure -- "https://get.haskellstack.org/stable/windows-%PLATFORM%.zip"
+  - >-
+    curl.exe
+    --silent
+    --show-error
+    --location
+    --insecure
+    --output C:\stack.zip
+    -- "https://get.haskellstack.org/stable/windows-%PLATFORM%.zip"
   - 7z.exe x "-o%STACK_ROOT%" C:\stack.zip
 
 build_script:
-  - '"%STACK_ROOT%\stack.exe" build --install-ghc --copy-bins --local-bin-path "%install_dir%" --arch "%PLATFORM%"'
+  - >-
+    "%STACK_ROOT%\stack.exe"
+    build
+    --install-ghc
+    --copy-bins
+    --local-bin-path "%install_dir%"
+    --arch "%PLATFORM%"
 
 after_build:
   - 7z.exe a "%APPVEYOR_PROJECT_NAME%-%PLATFORM%.zip" "%install_dir%"
