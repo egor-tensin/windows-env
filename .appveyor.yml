@@ -8,6 +8,9 @@ platform:
   - i386
   - x86_64
 
+matrix:
+  fast_finish: true
+
 before_build:
   - >-
     curl.exe
