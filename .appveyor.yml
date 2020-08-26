@@ -1,7 +1,6 @@
 version: '{build}'
 
 environment:
-  STACK_ROOT: C:\sr
   install_dir: C:\Projects\install\windows-env
 
 platform:
@@ -12,19 +11,11 @@ matrix:
   fast_finish: true
 
 before_build:
-  - >-
-    curl.exe
-    --silent
-    --show-error
-    --location
-    --insecure
-    --output C:\stack.zip
-    -- "https://get.haskellstack.org/stable/windows-%PLATFORM%.zip"
-  - 7z.exe x "-o%STACK_ROOT%" C:\stack.zip
+  - choco.exe install haskell-stack
 
 build_script:
   - >-
-    "%STACK_ROOT%\stack.exe"
+    stack.exe
     build
     --install-ghc
     --copy-bins
