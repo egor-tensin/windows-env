@@ -1,0 +1,40 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+  schedule:
+    # Weekly, at 5:30 AM on Sunday (somewhat randomly chosen).
+    - cron: '30 5 * * 0'
+  workflow_dispatch:
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        platform: [x86_64, i386]
+    runs-on: windows-latest
+    name: 'Build: ${{ matrix.platform }}'
+    env:
+      platform: '${{ matrix.platform }}'
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Set up Stack
+        uses: haskell/actions/setup@v1
+        with:
+          enable-stack: true
+          stack-no-global: true
+      # TODO: caching.
+      - name: Build dependencies
+        run: stack --no-terminal build --arch '${{ matrix.platform }}' --only-dependencies
+      - name: Build
+        run: stack --no-terminal build --arch '${{ matrix.platform }}' --copy-bins --local-bin-path ../install
+      - name: Upload the binaries
+        uses: actions/upload-artifact@v2
+        with:
+          name: 'windows-env-${{ matrix.platform }}'
+          path: '${{ runner.workspace }}/install/'
