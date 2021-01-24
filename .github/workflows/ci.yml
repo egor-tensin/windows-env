@@ -17,6 +17,8 @@ jobs:
     name: 'Build: ${{ matrix.platform }}'
     env:
       platform: '${{ matrix.platform }}'
+      global_env: 'HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\Environment'
+      user_env: 'HKCU:\Environment'
     defaults:
       run:
         shell: pwsh
@@ -38,3 +40,16 @@ jobs:
         with:
           name: 'windows-env-${{ matrix.platform }}'
           path: '${{ runner.workspace }}/install/'
+      - name: Run the tests
+        run: |
+          $((Get-ItemProperty $env:global_env).PATH.Split(';') | Select-String -Pattern '^C:\\dumb$' -Quiet) -and $(throw "Global PATH shouldn't contain C:\dumb")
+          $((Get-ItemProperty $env:user_env).PATH.Split(';')   | Select-String -Pattern '^C:\\dumb$' -Quiet) -and $(throw "User PATH shouldn't contain C:\dumb")
+          ../install/addpath -y C:\dumb
+          $((Get-ItemProperty $env:global_env).PATH.Split(';') | Select-String -Pattern '^C:\\dumb$' -Quiet) -and $(throw "Global PATH shouldn't contain C:\dumb")
+          $((Get-ItemProperty $env:user_env).PATH.Split(';')   | Select-String -Pattern '^C:\\dumb$' -Quiet) -or $(throw "User PATH should contain C:\dumb")
+          ../install/addpath -g -y C:\dumb
+          $((Get-ItemProperty $env:global_env).PATH.Split(';') | Select-String -Pattern '^C:\\dumb$' -Quiet) -or $(throw "Global PATH should contain C:\dumb")
+          $((Get-ItemProperty $env:user_env).PATH.Split(';')   | Select-String -Pattern '^C:\\dumb$' -Quiet) -or $(throw "User PATH should contain C:\dumb")
+          ../install/delpath -g -y C:\dumb
+          $((Get-ItemProperty $env:global_env).PATH.Split(';') | Select-String -Pattern '^C:\\dumb$' -Quiet) -and $(throw "Global PATH shouldn't contain C:\dumb")
+          $((Get-ItemProperty $env:user_env).PATH.Split(';')   | Select-String -Pattern '^C:\\dumb$' -Quiet) -and $(throw "User PATH shouldn't contain C:\dumb")
