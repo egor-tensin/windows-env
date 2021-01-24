@@ -1,7 +1,7 @@
 Windows environment variables
 =============================
 
-[![AppVeyor branch](https://img.shields.io/appveyor/ci/egor-tensin/windows-env/master?label=AppVeyor)](https://ci.appveyor.com/project/egor-tensin/windows-env/branch/master)
+[![CI](https://github.com/egor-tensin/windows-env/workflows/CI/badge.svg)](https://github.com/egor-tensin/windows-env/actions?query=workflow%3ACI)
 
 A collection of simple utilities to manage Windows environment variables,
 created mainly to:
