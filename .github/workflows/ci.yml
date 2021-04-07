@@ -40,6 +40,7 @@ jobs:
         with:
           name: 'windows-env-${{ matrix.platform }}'
           path: '${{ runner.workspace }}/install/'
+          if-no-files-found: error
       - name: Run the tests
         run: |
           $((Get-ItemProperty $env:global_env).PATH.Split(';') | Select-String -Pattern '^C:\\dumb$' -Quiet) -and $(throw "Global PATH shouldn't contain C:\dumb")
