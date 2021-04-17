@@ -1,7 +1,7 @@
 Windows environment variables
 =============================
 
-[![CI](https://github.com/egor-tensin/windows-env/workflows/CI/badge.svg)](https://github.com/egor-tensin/windows-env/actions?query=workflow%3ACI)
+[![CI](https://github.com/egor-tensin/windows-env/actions/workflows/ci.yml/badge.svg)](https://github.com/egor-tensin/windows-env/actions/workflows/ci.yml)
 
 A collection of simple utilities to manage Windows environment variables,
 created mainly to:
