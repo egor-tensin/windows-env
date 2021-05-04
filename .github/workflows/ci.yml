@@ -15,13 +15,13 @@ jobs:
         platform: [x86_64, i386]
     runs-on: windows-latest
     name: 'Build: ${{ matrix.platform }}'
+    defaults:
+      run:
+        shell: pwsh
     env:
       platform: '${{ matrix.platform }}'
       global_env: 'HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\Environment'
       user_env: 'HKCU:\Environment'
-    defaults:
-      run:
-        shell: pwsh
     steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -35,13 +35,13 @@ jobs:
         run: stack --no-terminal build --arch '${{ matrix.platform }}' --only-dependencies
       - name: Build
         run: stack --no-terminal build --arch '${{ matrix.platform }}' --copy-bins --local-bin-path ../install
-      - name: Upload the binaries
+      - name: Upload binaries
         uses: actions/upload-artifact@v2
         with:
           name: 'windows-env-${{ matrix.platform }}'
           path: '${{ runner.workspace }}/install/'
           if-no-files-found: error
-      - name: Run the tests
+      - name: Run tests
         run: |
           $((Get-ItemProperty $env:global_env).PATH.Split(';') | Select-String -Pattern '^C:\\dumb$' -Quiet) -and $(throw "Global PATH shouldn't contain C:\dumb")
           $((Get-ItemProperty $env:user_env).PATH.Split(';')   | Select-String -Pattern '^C:\\dumb$' -Quiet) -and $(throw "User PATH shouldn't contain C:\dumb")
