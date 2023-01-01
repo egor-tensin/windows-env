@@ -21,9 +21,9 @@ jobs:
       user_env: 'HKCU:\Environment'
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
       - name: Set up Stack
-        uses: haskell/actions/setup@v1
+        uses: haskell/actions/setup@v2
         with:
           enable-stack: true
           stack-no-global: true
@@ -33,7 +33,7 @@ jobs:
       - name: Build
         run: stack --no-terminal build --arch '${{ matrix.platform }}' --copy-bins --local-bin-path ../install
       - name: Upload binaries
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: 'windows-env-${{ matrix.platform }}'
           path: '${{ runner.workspace }}/install/'
