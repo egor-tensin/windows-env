@@ -35,7 +35,7 @@ jobs:
       - name: Build
         run: stack --no-terminal build --arch '${{ matrix.platform }}' --copy-bins --local-bin-path ../install
       - name: Upload binaries
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: 'windows-env-${{ matrix.platform }}'
           path: '${{ runner.workspace }}/install/'
