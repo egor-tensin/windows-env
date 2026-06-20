@@ -20,7 +20,7 @@ jobs:
       user_env: 'HKCU:\Environment'
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
       - name: Set up Stack
         uses: haskell-actions/setup@v2
         with:
