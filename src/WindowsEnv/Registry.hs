@@ -275,7 +275,4 @@ setStringValue keyPath valueName value =
 deleteValue :: IsKeyPath a => a -> ValueName -> ExceptT IOError IO ()
 deleteValue keyPath valueName =
     withHandle keyPath $ \keyHandle ->
-    withForeignPtr keyHandle $ \keyHandlePtr ->
-    WinAPI.withTString valueName $ \valueNamePtr ->
-    WinAPI.failUnlessSuccess "RegDeleteValueW" $
-        WinAPI.c_RegDeleteValue keyHandlePtr valueNamePtr
+    WinAPI.regDeleteValue keyHandle valueName
