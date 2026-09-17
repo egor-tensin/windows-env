@@ -7,11 +7,9 @@
 
 module Main (main) where
 
-import Control.Monad   (void)
+import Control.Monad (void)
 import Control.Monad.Trans.Except (runExceptT)
-import Data.Monoid     ((<>))
-import Data.Version    (showVersion)
-import System.IO.Error (ioError)
+import Data.Version  (showVersion)
 
 import Options.Applicative
 

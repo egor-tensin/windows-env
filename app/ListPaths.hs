@@ -11,11 +11,9 @@ import Control.Monad      (filterM)
 import Control.Monad.Trans.Class  (lift)
 import Control.Monad.Trans.Except (runExceptT)
 import Data.Maybe         (fromMaybe)
-import Data.Monoid        ((<>))
 import Data.Version       (showVersion)
 import System.Directory   (doesDirectoryExist)
 import System.Environment (lookupEnv)
-import System.IO.Error    (ioError)
 
 import Options.Applicative
 
