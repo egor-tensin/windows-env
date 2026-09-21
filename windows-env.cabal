@@ -13,8 +13,8 @@ homepage:           https://github.com/egor-tensin/windows-env
 license:            MIT
 license-file:       LICENSE.txt
 author:             Egor Tensin
-maintainer:         Egor.Tensin@gmail.com
-copyright:          (c) 2015 Egor Tensin <Egor.Tensin@gmail.com>
+maintainer:         egor@tensin.name
+copyright:          (c) 2015 Egor Tensin <egor@tensin.name>
 category:           System
 build-type:         Simple
 extra-source-files: README.md

@@ -1,8 +1,8 @@
 -- |
 -- Description : Lower-level registry access wrappers
--- Copyright   : (c) 2015 Egor Tensin <Egor.Tensin@gmail.com>
+-- Copyright   : (c) 2015 Egor Tensin <egor@tensin.name>
 -- License     : MIT
--- Maintainer  : Egor.Tensin@gmail.com
+-- Maintainer  : egor@tensin.name
 -- Stability   : experimental
 -- Portability : Windows-only
 --
